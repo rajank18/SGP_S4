@@ -32,17 +32,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("MoneyLog"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              final supabase = Supabase.instance.client;
-              await supabase.auth.signOut();
-              Navigator.pushReplacement(
-                  context, MaterialPageRoute(builder: (_) => LoginPage()));
-            },
-          )
-        ],
+        automaticallyImplyLeading: false, // Removes the back button
       ),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
