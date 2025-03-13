@@ -6,8 +6,9 @@ class IntroScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 38, 38, 38), // Black background
+      backgroundColor: Colors.black, // Set entire screen background to black
       body: IntroductionScreen(
+        globalBackgroundColor: Colors.black, // Ensures navbar area is black
         pages: [
           PageViewModel(
             title: "Welcome to MoneyLog",
@@ -20,14 +21,15 @@ class IntroScreen extends StatelessWidget {
               ),
             ),
             decoration: PageDecoration(
+              pageColor: Colors.black, // Page background black
               titleTextStyle: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.white, // White text
+                color: Colors.white, // White title text
               ),
               bodyTextStyle: TextStyle(
                 fontSize: 18,
-                color: Colors.grey, // Grey text
+                color: Colors.grey[400], // Light gray body text
               ),
               imagePadding: EdgeInsets.all(20),
             ),
@@ -43,14 +45,15 @@ class IntroScreen extends StatelessWidget {
               ),
             ),
             decoration: PageDecoration(
+              pageColor: Colors.black,
               titleTextStyle: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.white, // White text
+                color: Colors.white,
               ),
               bodyTextStyle: TextStyle(
                 fontSize: 18,
-                color: Colors.grey, // Grey text
+                color: Colors.grey[400],
               ),
               imagePadding: EdgeInsets.all(20),
             ),
@@ -65,14 +68,15 @@ class IntroScreen extends StatelessWidget {
               ),
             ),
             decoration: PageDecoration(
+              pageColor: Colors.black,
               titleTextStyle: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.white, // White text
+                color: Colors.white,
               ),
               bodyTextStyle: TextStyle(
                 fontSize: 18,
-                color: Colors.grey, // Grey text
+                color: Colors.grey[400],
               ),
               imagePadding: EdgeInsets.all(20),
             ),
@@ -83,17 +87,17 @@ class IntroScreen extends StatelessWidget {
         showSkipButton: true,
         skip: Text(
           "Skip",
-          style: TextStyle(color: Colors.green), // Green skip button
+          style: TextStyle(color: Colors.white), // White skip button
         ),
         next: Icon(
           Icons.arrow_forward,
-          color: Colors.green, // Green next icon
+          color: Colors.white, // White next icon
         ),
         done: Text(
           "Get Started",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.green, // Green done button
+            color: Colors.white, // White done button
           ),
         ),
         dotsDecorator: DotsDecorator(
