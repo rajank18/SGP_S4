@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../screens/login.dart';
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -93,7 +94,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
               SizedBox(height: 10),
               TextButton(
-                onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LoginPage())),
                 child: Text("Already have an account? Log in"),
               ),
             ],

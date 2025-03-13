@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:moneylog/screens/homepage.dart';
+import 'package:moneylog/screens/intro.dart';
 import 'package:moneylog/screens/login.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import './screens/signup.dart';
 import './screens/login.dart';
@@ -26,16 +28,31 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'MoneyLog',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: AuthRedirectScreen(),
       routes: {
-        '/signup': (context) => SignUpPage(),
-        '/home': (context) => HomePage(), // Ensure HomePage exists
         '/login': (context) => LoginPage(),
+        '/signup': (context) => SignUpPage(),
+        '/home': (context) => HomePage(),
       },
+      home: FutureBuilder<bool>(
+        future: checkFirstLaunch(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          return snapshot.data == true ? IntroScreen() : AuthRedirectScreen();
+        },
+      ),
     );
   }
+}
+
+Future<bool> checkFirstLaunch() async {
+  final prefs = await SharedPreferences.getInstance();
+  bool firstLaunch = prefs.getBool("first_launch") ?? true;
+  if (firstLaunch) {
+    await prefs.setBool("first_launch", false);
+  }
+  return firstLaunch;
 }
 
 class AuthRedirectScreen extends StatelessWidget {
