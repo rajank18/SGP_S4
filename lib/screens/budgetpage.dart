@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:moneylog/screens/analysis.dart';
+import 'package:moneylog/screens/homepage.dart';
+import 'package:moneylog/screens/userprofile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class budgetpage extends StatefulWidget {
+class BudgetPage extends StatefulWidget {
   @override
   _BudgetPageState createState() => _BudgetPageState();
 }
 
-class _BudgetPageState extends State<budgetpage> {
+class _BudgetPageState extends State<BudgetPage> {
   final supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _categories = [];
 
@@ -138,6 +141,41 @@ class _BudgetPageState extends State<budgetpage> {
     await supabase.from('categories').delete().match({'id': _categories[index]['id']});
     _fetchCategories(); // Refresh UI after deletion
   }
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // Navigate to the corresponding page based on the selected index
+    switch (index) {
+      case 0: // Home
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage()),
+        );
+        break;
+      case 1: // Budget
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => BudgetPage()),
+        );
+        break;
+      case 2: // Stats
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => AnalyticsPage()),
+        );
+        break;
+      case 3: // Profile
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => UserProfile()),
+        );
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +210,20 @@ class _BudgetPageState extends State<budgetpage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _addNewCategory,
         child: Icon(Icons.add),
+      ),
+      
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.black,
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.wallet), label: "Budget"),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Stats"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        ],
       ),
     );
   }
