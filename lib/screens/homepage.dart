@@ -18,7 +18,7 @@ class _HomePageState extends State<HomePage> {
     HomePageContent(),
     budgetpage(),
     AnalyticsPage(),
-    userprofile(),
+    UserProfile(),
   ];
 
   void _onItemTapped(int index) {
@@ -32,6 +32,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("MoneyLog"),
+        centerTitle: true,
         automaticallyImplyLeading: false, // Removes the back button
       ),
       body: _pages[_selectedIndex],
