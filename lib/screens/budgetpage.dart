@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:moneylog/screens/analysis.dart';
-import 'package:moneylog/screens/homepage.dart';
-import 'package:moneylog/screens/userprofile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BudgetPage extends StatefulWidget {
@@ -98,83 +95,48 @@ class _BudgetPageState extends State<BudgetPage> {
   }
 
   Future<void> _setBudget(int index) async {
-  TextEditingController budgetController = TextEditingController();
+    TextEditingController budgetController = TextEditingController();
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text("Set Budget for ${_categories[index]['name']}"),
-        content: TextField(
-          controller: budgetController,
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-          decoration: InputDecoration(hintText: "Enter budget amount"),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
-          TextButton(
-            onPressed: () async {
-              if (budgetController.text.isEmpty) return;
-              final newBudget = double.parse(budgetController.text);
-
-              await supabase.from('budgets').update({'amount': newBudget}).match({
-                'category_id': _categories[index]['id'],
-                'user_id': supabase.auth.currentUser!.id,
-              });
-
-              setState(() {
-                _categories[index]['budget'] = newBudget;
-              });
-
-              Navigator.pop(context);
-            },
-            child: Text("Set"),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Set Budget for ${_categories[index]['name']}"),
+          content: TextField(
+            controller: budgetController,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+            decoration: InputDecoration(hintText: "Enter budget amount"),
           ),
-        ],
-      );
-    },
-  );
-}
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
+            TextButton(
+              onPressed: () async {
+                if (budgetController.text.isEmpty) return;
+                final newBudget = double.parse(budgetController.text);
+
+                await supabase.from('budgets').update({'amount': newBudget}).match({
+                  'category_id': _categories[index]['id'],
+                  'user_id': supabase.auth.currentUser!.id,
+                });
+
+                setState(() {
+                  _categories[index]['budget'] = newBudget;
+                });
+
+                Navigator.pop(context);
+              },
+              child: Text("Set"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _deleteCategory(int index) async {
     await supabase.from('categories').delete().match({'id': _categories[index]['id']});
     _fetchCategories(); // Refresh UI after deletion
-  }
-  int _selectedIndex = 0;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // Navigate to the corresponding page based on the selected index
-    switch (index) {
-      case 0: // Home
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
-        break;
-      case 1: // Budget
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => BudgetPage()),
-        );
-        break;
-      case 2: // Stats
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => AnalyticsPage()),
-        );
-        break;
-      case 3: // Profile
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => UserProfile()),
-        );
-        break;
-    }
   }
 
   @override
@@ -210,20 +172,6 @@ class _BudgetPageState extends State<BudgetPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _addNewCategory,
         child: Icon(Icons.add),
-      ),
-      
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.black,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.wallet), label: "Budget"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Stats"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
       ),
     );
   }

@@ -17,6 +17,59 @@ class _HomePageState extends State<HomePage> {
 
   int _selectedIndex = 0; // ✅ For Bottom Navbar
 
+  final List<Widget> _pages = [
+    HomePageContent(), // Separate widget for home content
+    BudgetPage(),
+    AnalyticsPage(),
+    UserProfile(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("MoneyLog", style: TextStyle(color: Colors.green)),
+        centerTitle: true, // ✅ Centered Title
+        backgroundColor: Colors.black,
+        iconTheme: IconThemeData(color: Colors.green),
+      ),
+      backgroundColor: Colors.black,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.black,
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.wallet), label: "Budget"),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Analysis"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "User Profile"),
+        ],
+      ),
+    );
+  }
+}
+
+// ✅ Extract Home Page Content to Avoid Rebuilding on Navigation
+class HomePageContent extends StatefulWidget {
+  @override
+  _HomePageContentState createState() => _HomePageContentState();
+}
+
+class _HomePageContentState extends State<HomePageContent> {
+  final supabase = Supabase.instance.client;
+  List<dynamic> _transactions = [];
+  double _balance = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -60,118 +113,54 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // Navigate to the corresponding page based on the selected index
-    switch (index) {
-      case 0: // Home
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
-        break;
-      case 1: // Budget
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => BudgetPage()),
-        );
-        break;
-      case 2: // Stats
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => AnalyticsPage()),
-        );
-        break;
-      case 3: // Profile
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => UserProfile()),
-        );
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("MoneyLog", style: TextStyle(color: Colors.green)),
-        backgroundColor: Colors.black,
-        iconTheme: IconThemeData(color: Colors.green),
-      ),
-      backgroundColor: Colors.black,
-      body: Column(
-        children: [
-          // ✅ Account Balance Section
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            margin: EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Text(
-                  "Account Balance",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  "₹$_balance",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-              ],
-            ),
+    return Column(
+      children: [
+        // ✅ Account Balance Section
+        Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.green,
+            borderRadius: BorderRadius.circular(10),
           ),
-
-          // ✅ Transaction History Section
-          Expanded(
-            child: _transactions.isEmpty
-                ? Center(child: Text("No Transactions Found!", style: TextStyle(color: Colors.white)))
-                : ListView.builder(
-                    itemCount: _transactions.length,
-                    itemBuilder: (context, index) {
-                      final transaction = _transactions[index];
-                      bool isIncome = transaction['type'] == 'income';
-                      return ListTile(
-                        title: Text(
-                          "${isIncome ? 'Income' : 'Expense'} (${transaction['category']}): ₹${transaction['amount']}",
-                          style: TextStyle(color: isIncome ? Colors.green : Colors.red),
-                        ),
-                        subtitle: Text("${transaction['date']}", style: TextStyle(color: Colors.grey)),
-                        trailing: Icon(Icons.arrow_forward, color: Colors.green),
-                      );
-                    },
-                  ),
+          margin: EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Text(
+                "Account Balance",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "₹$_balance",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ],
           ),
-        ],
-      ),
-      
-      // ✅ Floating Button for Transactions
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToTransactionPage,
-        child: Icon(Icons.add, color: Colors.white),
-        backgroundColor: Colors.green,
-      ),
+        ),
 
-      // ✅ Bottom Navigation Bar
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.black,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.wallet), label: "Budget"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Stats"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-      ),
+        // ✅ Transaction History Section
+        Expanded(
+          child: _transactions.isEmpty
+              ? Center(child: Text("No Transactions Found!", style: TextStyle(color: Colors.white)))
+              : ListView.builder(
+                  itemCount: _transactions.length,
+                  itemBuilder: (context, index) {
+                    final transaction = _transactions[index];
+                    bool isIncome = transaction['type'] == 'income';
+                    return ListTile(
+                      title: Text(
+                        "${isIncome ? 'Income' : 'Expense'} (${transaction['category']}): ₹${transaction['amount']}",
+                        style: TextStyle(color: isIncome ? Colors.green : Colors.red),
+                      ),
+                      subtitle: Text("${transaction['date']}", style: TextStyle(color: Colors.grey)),
+                      trailing: Icon(Icons.arrow_forward, color: Colors.green),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
