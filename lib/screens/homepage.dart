@@ -15,51 +15,65 @@ class _HomePageState extends State<HomePage> {
   List<dynamic> _transactions = [];
   double _balance = 0.0;
 
-  int _selectedIndex = 0; // ✅ For Bottom Navbar
+  int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    HomePageContent(), // Separate widget for home content
+    HomePageContent(),
     BudgetPage(),
     AnalyticsPage(),
     UserProfile(),
   ];
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("MoneyLog", style: TextStyle(color: Colors.green)),
-        centerTitle: true, // ✅ Centered Title
+        title: Center(
+          child: Text("MoneyLog", style: TextStyle(color: Colors.green)),
+        ),
         backgroundColor: Colors.black,
         iconTheme: IconThemeData(color: Colors.green),
       ),
       backgroundColor: Colors.black,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
+      body: _pages[_selectedIndex],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TransactionPage()),
+          );
+        },
+        child: Icon(Icons.add, color: Colors.white),
+        backgroundColor: Colors.green,
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.wallet), label: "Budget"),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Analysis"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "User Profile"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
     );
   }
 }
 
-// ✅ Extract Home Page Content to Avoid Rebuilding on Navigation
 class HomePageContent extends StatefulWidget {
   @override
   _HomePageContentState createState() => _HomePageContentState();
@@ -102,22 +116,10 @@ class _HomePageContentState extends State<HomePageContent> {
     });
   }
 
-  void _navigateToTransactionPage() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => TransactionPage()),
-    );
-
-    if (result == true) {
-      _fetchTransactions();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // ✅ Account Balance Section
         Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -127,23 +129,25 @@ class _HomePageContentState extends State<HomePageContent> {
           margin: EdgeInsets.all(12),
           child: Column(
             children: [
-              Text(
-                "Account Balance",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
+              Text("Account Balance",
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white)),
               SizedBox(height: 8),
-              Text(
-                "₹$_balance",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
+              Text("₹$_balance",
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white)),
             ],
           ),
         ),
-
-        // ✅ Transaction History Section
         Expanded(
           child: _transactions.isEmpty
-              ? Center(child: Text("No Transactions Found!", style: TextStyle(color: Colors.white)))
+              ? Center(
+                  child: Text("No Transactions Found!",
+                      style: TextStyle(color: Colors.white)))
               : ListView.builder(
                   itemCount: _transactions.length,
                   itemBuilder: (context, index) {
@@ -152,9 +156,11 @@ class _HomePageContentState extends State<HomePageContent> {
                     return ListTile(
                       title: Text(
                         "${isIncome ? 'Income' : 'Expense'} (${transaction['category']}): ₹${transaction['amount']}",
-                        style: TextStyle(color: isIncome ? Colors.green : Colors.red),
+                        style:
+                            TextStyle(color: isIncome ? Colors.green : Colors.red),
                       ),
-                      subtitle: Text("${transaction['date']}", style: TextStyle(color: Colors.grey)),
+                      subtitle: Text("${transaction['date']}",
+                          style: TextStyle(color: Colors.grey)),
                       trailing: Icon(Icons.arrow_forward, color: Colors.green),
                     );
                   },
