@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import './login.dart';
 
 class UserProfile extends StatefulWidget {
+  const UserProfile({super.key});
+
   @override
   _UserProfileState createState() => _UserProfileState();
 }
@@ -89,7 +91,7 @@ class _UserProfileState extends State<UserProfile> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  "\ ${totalBudget.toStringAsFixed(2)} ₹",
+                  " ${totalBudget.toStringAsFixed(2)} ₹",
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
                 ),
                 SizedBox(height: 16),

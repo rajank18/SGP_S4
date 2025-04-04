@@ -3,6 +3,8 @@ import 'package:introduction_screen/introduction_screen.dart';
 import './login.dart';
 
 class IntroScreen extends StatelessWidget {
+  const IntroScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

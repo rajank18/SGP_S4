@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class TransactionPage extends StatefulWidget {
+  const TransactionPage({super.key});
+
   @override
   _TransactionPageState createState() => _TransactionPageState();
 }
@@ -11,8 +13,8 @@ class _TransactionPageState extends State<TransactionPage> {
   final TextEditingController _amountController = TextEditingController();
   String _selectedType = 'income'; // Default type
   String _selectedCategory = 'Salary'; // Default category
-  List<String> _incomeCategories = ['Salary', 'Gift', 'Freelance'];
-  List<String> _expenseCategories = [
+  final List<String> _incomeCategories = ['Salary', 'Gift', 'Freelance'];
+  final List<String> _expenseCategories = [
     'Food',
     'Beauty',
     'Entertainment',
@@ -64,8 +66,8 @@ class _TransactionPageState extends State<TransactionPage> {
         _buildNumberButton("C", isClear: true),
         ElevatedButton(
           onPressed: _addTransaction,
-          child: Text("Enter", style: TextStyle(fontSize: 18)),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+          child: Text("Enter", style: TextStyle(fontSize: 18)),
         ),
       ],
     );

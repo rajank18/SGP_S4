@@ -45,7 +45,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   fl_chart: ^0.70.2
-  flutter_local_notifications: ^18.0.1
+  flutter_local_notifications: ^19.0.0
 
 dev_dependencies:
   flutter_test:

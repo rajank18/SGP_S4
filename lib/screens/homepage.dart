@@ -6,14 +6,16 @@ import 'package:moneylog/screens/userprofile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
   final supabase = Supabase.instance.client;
-  List<dynamic> _transactions = [];
-  double _balance = 0.0;
+  final List<dynamic> _transactions = [];
+  final double _balance = 0.0;
 
   int _selectedIndex = 0;
 
@@ -54,12 +56,12 @@ class _HomePageState extends State<HomePage> {
             MaterialPageRoute(builder: (context) => TransactionPage()),
           );
         },
-        child: Icon(Icons.add, color: Colors.white),
         backgroundColor: Colors.green,
+        child: Icon(Icons.add, color: const Color.fromARGB(255, 0, 0, 0)),
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black,
-        selectedItemColor: Colors.green,
+        selectedItemColor: const Color.fromARGB(255, 9, 59, 10),
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
@@ -75,6 +77,8 @@ class _HomePageState extends State<HomePage> {
 }
 
 class HomePageContent extends StatefulWidget {
+  const HomePageContent({super.key});
+
   @override
   _HomePageContentState createState() => _HomePageContentState();
 }

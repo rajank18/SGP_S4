@@ -12,7 +12,7 @@ void main() async {
 
   await Supabase.initialize(
     url: 'https://xexwvjehrpjjyuvxtfnm.supabase.co', 
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhleHd2amVocnBqanl1dnh0Zm5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NDkyMzgsImV4cCI6MjA1NzQyNTIzOH0.O6WkTxqJLoU7fdUiSW4LSJdhQs-ln-mFwupJXgttkns', // Replace with your Supabase Anon Key
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhleHd2amVocnBqanl1dnh0Zm5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NDkyMzgsImV4cCI6MjA1NzQyNTIzOH0.O6WkTxqJLoU7fdUiSW4LSJdhQs-ln-mFwupJXgttkns', 
   );
 
   runApp(MyApp());
@@ -53,6 +53,8 @@ Future<bool> checkFirstLaunch() async {
 }
 
 class AuthRedirectScreen extends StatelessWidget {
+  const AuthRedirectScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final supabase = Supabase.instance.client;

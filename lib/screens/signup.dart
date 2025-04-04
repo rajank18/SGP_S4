@@ -4,6 +4,8 @@ import 'dart:math';
 import 'login.dart'; // Import your login page
 
 class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
+
   @override
   _SignUpPageState createState() => _SignUpPageState();
 }

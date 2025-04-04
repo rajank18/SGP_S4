@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BudgetPage extends StatefulWidget {
+  const BudgetPage({super.key});
+
   @override
   _BudgetPageState createState() => _BudgetPageState();
 }
