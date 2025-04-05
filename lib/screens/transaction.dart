@@ -12,16 +12,31 @@ class _TransactionPageState extends State<TransactionPage> {
   final supabase = Supabase.instance.client;
   final TextEditingController _amountController = TextEditingController();
   String _selectedType = 'income'; // Default type
-  String _selectedCategory = 'Salary'; // Default category
-  final List<String> _incomeCategories = ['Salary', 'Gift', 'Freelance'];
-  final List<String> _expenseCategories = [
-    'Food',
-    'Beauty',
-    'Entertainment',
-    'Medicine'
-  ];
+  String? _selectedCategory; // Updated to handle fetched categories
+  List<String> _categories = [];
 
-  // ✅ Function to store transaction in Supabase
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final response = await supabase.from('categories').select('name').filter('user_id', 'is', null);
+      setState(() {
+        _categories = response.map<String>((cat) => cat['name'] as String).toList();
+        if (_categories.isNotEmpty) {
+          _selectedCategory = _categories.first;
+        }
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching categories: $e")),
+      );
+    }
+  }
+
   Future<void> _addTransaction() async {
     final user = supabase.auth.currentUser;
     if (user == null) {
@@ -31,22 +46,36 @@ class _TransactionPageState extends State<TransactionPage> {
       return;
     }
 
+    final amount = double.parse(_amountController.text);
+    
     try {
+      // First get the category ID
+      final categoryResponse = await supabase
+          .from('categories')
+          .select('id')
+          .eq('name', _selectedCategory ?? '')
+          .single();
+      
+      // Now add the transaction with both category_id and category_name
       await supabase.from('transactions').insert({
         'user_id': user.id,
-        'category_id': null, // Update with actual category ID if needed
-        'amount': double.parse(_amountController.text),
+        'category_id': categoryResponse['id'], // Keep the category ID
+        'category_name': _selectedCategory, // Add the category name directly
+        'amount': amount,
         'type': _selectedType,
         'note': null,
         'date': DateTime.now().toIso8601String(),
       });
+      
+      if (_selectedType == 'expense') {
+        await _updateBudget(user.id, amount);
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Transaction Added Successfully! ✅")),
       );
 
-      Navigator.pop(
-          context, true); // ✅ Return `true` to trigger refresh in homepage
+      Navigator.pop(context, true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
@@ -54,7 +83,26 @@ class _TransactionPageState extends State<TransactionPage> {
     }
   }
 
-  // ✅ Build Number Pad for Amount Entry
+  Future<void> _updateBudget(String userId, double amount) async {
+    try {
+      final response = await supabase
+          .from('budgets')
+          .select('id, amount')
+          .eq('user_id', userId)
+          .limit(1)
+          .maybeSingle();
+      
+      if (response != null) {
+        final newAmount = response['amount'] - amount;
+        await supabase.from('budgets').update({'amount': newAmount}).eq('id', response['id']);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error updating budget: $e")),
+      );
+    }
+  }
+
   Widget _buildNumberPad() {
     return GridView.count(
       shrinkWrap: true,
@@ -73,7 +121,6 @@ class _TransactionPageState extends State<TransactionPage> {
     );
   }
 
-  // ✅ Create Buttons for Number Pad
   Widget _buildNumberButton(String text, {bool isClear = false}) {
     return GestureDetector(
       onTap: () {
@@ -118,16 +165,15 @@ class _TransactionPageState extends State<TransactionPage> {
                 style: TextStyle(fontSize: 18, color: Colors.white)),
             TextField(
               controller: _amountController,
-              keyboardType: TextInputType.none, // Disable normal keyboard
-              style: TextStyle(fontSize: 24, color: Colors.white),
+              keyboardType: TextInputType.none,
+              style: TextStyle(fontSize: 20, color: Colors.white),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.grey[900],
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 18),
             Text("Select Type:",
                 style: TextStyle(fontSize: 18, color: Colors.white)),
             DropdownButton<String>(
@@ -143,23 +189,16 @@ class _TransactionPageState extends State<TransactionPage> {
               onChanged: (val) {
                 setState(() {
                   _selectedType = val!;
-                  _selectedCategory = _selectedType == 'income'
-                      ? _incomeCategories.first
-                      : _expenseCategories
-                          .first; // ✅ Reset category to a valid default
                 });
               },
             ),
-
             SizedBox(height: 20),
             Text("Select Category:",
                 style: TextStyle(fontSize: 18, color: Colors.white)),
             DropdownButton<String>(
               value: _selectedCategory,
               dropdownColor: Colors.black,
-              items: (_selectedType == 'income'
-                      ? _incomeCategories
-                      : _expenseCategories)
+              items: _categories
                   .map((cat) => DropdownMenuItem(
                         value: cat,
                         child: Text(cat, style: TextStyle(color: Colors.green)),
@@ -168,8 +207,7 @@ class _TransactionPageState extends State<TransactionPage> {
               onChanged: (val) => setState(() => _selectedCategory = val!),
             ),
             SizedBox(height: 20),
-            Expanded(
-                child: _buildNumberPad()), // ✅ Wrap GridView inside Expanded
+            Expanded(child: _buildNumberPad()),
           ],
         ),
       ),

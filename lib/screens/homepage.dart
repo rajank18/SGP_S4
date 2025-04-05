@@ -100,7 +100,12 @@ class _HomePageContentState extends State<HomePageContent> {
 
     final response = await supabase
         .from('transactions')
-        .select()
+        .select('''
+          *,
+          categories (
+            name
+          )
+        ''')
         .eq('user_id', user.id)
         .order('date', ascending: false);
 
@@ -157,14 +162,18 @@ class _HomePageContentState extends State<HomePageContent> {
                   itemBuilder: (context, index) {
                     final transaction = _transactions[index];
                     bool isIncome = transaction['type'] == 'income';
+                    String categoryName = transaction['category_name'] ?? 'Other';
+                    
                     return ListTile(
                       title: Text(
-                        "${isIncome ? 'Income' : 'Expense'} (${transaction['category']}): ₹${transaction['amount']}",
-                        style:
-                            TextStyle(color: isIncome ? Colors.green : Colors.red),
+                        "${isIncome ? 'Income' : 'Expense'} ($categoryName): ₹${transaction['amount']}",
+                        style: TextStyle(
+                            color: isIncome ? Colors.green : Colors.red),
                       ),
-                      subtitle: Text("${transaction['date']}",
-                          style: TextStyle(color: Colors.grey)),
+                      subtitle: Text(
+                        DateTime.parse(transaction['date']).toString().split('.')[0],
+                        style: TextStyle(color: Colors.grey)
+                      ),
                       trailing: Icon(Icons.arrow_forward, color: Colors.green),
                     );
                   },
