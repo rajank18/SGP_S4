@@ -11,8 +11,9 @@ class TransactionPage extends StatefulWidget {
 class _TransactionPageState extends State<TransactionPage> {
   final supabase = Supabase.instance.client;
   final TextEditingController _amountController = TextEditingController();
-  String _selectedType = 'income'; // Default type
-  String? _selectedCategory; // Updated to handle fetched categories
+  final TextEditingController _noteController = TextEditingController();
+  String _selectedType = 'income';
+  String? _selectedCategory;
   List<String> _categories = [];
 
   @override
@@ -22,10 +23,18 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   Future<void> _fetchCategories() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
     try {
-      final response = await supabase.from('categories').select('name').filter('user_id', 'is', null);
+      final response = await supabase
+          .from('categories')
+          .select('name')
+          .or('user_id.is.null,user_id.eq.${user.id}');
+
       setState(() {
-        _categories = response.map<String>((cat) => cat['name'] as String).toList();
+        _categories =
+            response.map<String>((cat) => cat['name'] as String).toList();
         if (_categories.isNotEmpty) {
           _selectedCategory = _categories.first;
         }
@@ -37,6 +46,31 @@ class _TransactionPageState extends State<TransactionPage> {
     }
   }
 
+  Future<double> _getBudgetForCategory(String categoryName) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return 0.0;
+
+    final categoryRes = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', categoryName)
+        .maybeSingle();
+
+    if (categoryRes == null) return 0.0;
+
+    final categoryId = categoryRes['id'];
+
+    final budgetRes = await supabase
+        .from('budgets')
+        .select('amount')
+        .eq('category_id', categoryId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (budgetRes == null) return 0.0;
+    return double.tryParse(budgetRes['amount'].toString()) ?? 0.0;
+  }
+
   Future<void> _addTransaction() async {
     final user = supabase.auth.currentUser;
     if (user == null) {
@@ -46,29 +80,57 @@ class _TransactionPageState extends State<TransactionPage> {
       return;
     }
 
-    final amount = double.parse(_amountController.text);
-    
-    try {
-      // First get the category ID
+    final enteredAmount = double.tryParse(_amountController.text) ?? 0.0;
+    final note = _selectedType == 'income' ? _noteController.text : null;
+
+    String? categoryId;
+
+    if (_selectedType == 'expense') {
+      final budget = await _getBudgetForCategory(_selectedCategory!);
+      if (enteredAmount > budget) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text("Budget Exceeded"),
+            content: Text(
+                "Your expense exceeds the budget for $_selectedCategory. Please update the budget."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context);
+                },
+                child: Text("OK"),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
       final categoryResponse = await supabase
           .from('categories')
           .select('id')
           .eq('name', _selectedCategory ?? '')
-          .single();
-      
-      // Now add the transaction with both category_id and category_name
+          .maybeSingle();
+
+      if (categoryResponse != null) {
+        categoryId = categoryResponse['id'];
+      }
+    }
+
+    try {
       await supabase.from('transactions').insert({
         'user_id': user.id,
-        'category_id': categoryResponse['id'], // Keep the category ID
-        'category_name': _selectedCategory, // Add the category name directly
-        'amount': amount,
+        'category_id': categoryId,
+        'amount': enteredAmount,
         'type': _selectedType,
-        'note': null,
+        'note': note,
         'date': DateTime.now().toIso8601String(),
       });
-      
+
       if (_selectedType == 'expense') {
-        await _updateBudget(user.id, amount);
+        await _updateBudget(user.id, categoryId!, enteredAmount);
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,18 +145,20 @@ class _TransactionPageState extends State<TransactionPage> {
     }
   }
 
-  Future<void> _updateBudget(String userId, double amount) async {
+  Future<void> _updateBudget(String userId, String categoryId, double amount) async {
     try {
       final response = await supabase
           .from('budgets')
           .select('id, amount')
           .eq('user_id', userId)
-          .limit(1)
+          .eq('category_id', categoryId)
           .maybeSingle();
-      
+
       if (response != null) {
-        final newAmount = response['amount'] - amount;
-        await supabase.from('budgets').update({'amount': newAmount}).eq('id', response['id']);
+        final newAmount = (response['amount'] as num).toDouble() - amount;
+        await supabase
+            .from('budgets')
+            .update({'amount': newAmount}).eq('id', response['id']);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -170,7 +234,8 @@ class _TransactionPageState extends State<TransactionPage> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.grey[900],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
             SizedBox(height: 18),
@@ -193,19 +258,38 @@ class _TransactionPageState extends State<TransactionPage> {
               },
             ),
             SizedBox(height: 20),
-            Text("Select Category:",
-                style: TextStyle(fontSize: 18, color: Colors.white)),
-            DropdownButton<String>(
-              value: _selectedCategory,
-              dropdownColor: Colors.black,
-              items: _categories
-                  .map((cat) => DropdownMenuItem(
-                        value: cat,
-                        child: Text(cat, style: TextStyle(color: Colors.green)),
-                      ))
-                  .toList(),
-              onChanged: (val) => setState(() => _selectedCategory = val!),
-            ),
+            if (_selectedType == 'expense') ...[
+              Text("Select Category:",
+                  style: TextStyle(fontSize: 18, color: Colors.white)),
+              DropdownButton<String>(
+                value: _selectedCategory,
+                dropdownColor: Colors.black,
+                items: _categories
+                    .map((cat) => DropdownMenuItem(
+                          value: cat,
+                          child:
+                              Text(cat, style: TextStyle(color: Colors.green)),
+                        ))
+                    .toList(),
+                onChanged: (val) =>
+                    setState(() => _selectedCategory = val!),
+              ),
+            ] else ...[
+              Text("Add Note (Optional):",
+                  style: TextStyle(fontSize: 18, color: Colors.white)),
+              TextField(
+                controller: _noteController,
+                style: TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: "e.g. Salary, freelance work",
+                  hintStyle: TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: Colors.grey[900],
+                  border:
+                      OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
             SizedBox(height: 20),
             Expanded(child: _buildNumberPad()),
           ],

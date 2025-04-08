@@ -4,6 +4,7 @@ import 'package:moneylog/screens/budgetpage.dart';
 import 'package:moneylog/screens/analysis.dart';
 import 'package:moneylog/screens/userprofile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,10 +14,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final supabase = Supabase.instance.client;
-  final List<dynamic> _transactions = [];
-  final double _balance = 0.0;
-
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
@@ -25,11 +22,6 @@ class _HomePageState extends State<HomePage> {
     AnalyticsPage(),
     UserProfile(),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -50,25 +42,31 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.black,
       body: _pages[_selectedIndex],
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => TransactionPage()),
           );
+          if (result == true) {
+            setState(() {
+              _pages[0] = HomePageContent(); // Refresh
+            });
+          }
         },
         backgroundColor: Colors.green,
-        child: Icon(Icons.add, color: const Color.fromARGB(255, 0, 0, 0)),
+        child: Icon(Icons.add, color: Colors.black),
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black,
-        selectedItemColor: const Color.fromARGB(255, 9, 59, 10),
+        selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.wallet), label: "Budget"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Analysis"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart), label: "Analysis"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
@@ -87,6 +85,8 @@ class _HomePageContentState extends State<HomePageContent> {
   final supabase = Supabase.instance.client;
   List<dynamic> _transactions = [];
   double _balance = 0.0;
+  double _totalIncome = 0.0;
+  double _totalExpense = 0.0;
 
   @override
   void initState() {
@@ -100,58 +100,125 @@ class _HomePageContentState extends State<HomePageContent> {
 
     final response = await supabase
         .from('transactions')
-        .select('''
-          *,
-          categories (
-            name
-          )
-        ''')
+        .select('id, amount, type, date, created_at, note, categories(name)')
         .eq('user_id', user.id)
-        .order('date', ascending: false);
+        .order('created_at', ascending: false);
 
-    double balance = 0.0;
+    double income = 0.0;
+    double expense = 0.0;
+
     for (var transaction in response) {
       double amount = double.tryParse(transaction['amount'].toString()) ?? 0;
       if (transaction['type'] == 'income') {
-        balance += amount;
+        income += amount;
       } else if (transaction['type'] == 'expense') {
-        balance -= amount;
+        expense += amount;
       }
     }
 
     setState(() {
       _transactions = response;
-      _balance = balance;
+      _totalIncome = income;
+      _totalExpense = expense;
+      _balance = income - expense;
     });
+  }
+
+  Future<void> _deleteTransaction(String transactionId) async {
+    try {
+      await supabase.from('transactions').delete().eq('id', transactionId);
+
+      setState(() {
+        _transactions.removeWhere((tx) => tx['id'] == transactionId);
+        _totalIncome = _transactions.where((tx) => tx['type'] == 'income').fold(
+            0.0, (sum, tx) => sum + double.tryParse(tx['amount'].toString())!);
+        _totalExpense = _transactions
+            .where((tx) => tx['type'] == 'expense')
+            .fold(0.0,
+                (sum, tx) => sum + double.tryParse(tx['amount'].toString())!);
+        _balance = _totalIncome - _totalExpense;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Transaction deleted.")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting: $e")),
+      );
+    }
+  }
+
+  void _confirmDelete(String transactionId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete Transaction"),
+        content: Text("Are you sure you want to delete this transaction?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _deleteTransaction(transactionId);
+            },
+            child: Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoBox(
+      String title, double amount, Color bgColor, Color textColor) {
+    return Expanded(
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 6),
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Text(title,
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white)),
+            SizedBox(height: 8),
+            Text("₹${amount.abs().toStringAsFixed(2)}",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: textColor)),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isDeficit = _totalExpense > _totalIncome;
+
     return Column(
       children: [
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.green,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: EdgeInsets.all(12),
-          child: Column(
-            children: [
-              Text("Account Balance",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white)),
-              SizedBox(height: 8),
-              Text("₹$_balance",
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white)),
-            ],
-          ),
+        SizedBox(height: 16),
+        Row(
+          children: [
+            _buildInfoBox(
+                "Income", _totalIncome, Colors.green.shade700, Colors.white),
+            _buildInfoBox(
+                "Expense", _totalExpense, Colors.red.shade700, Colors.white),
+            _buildInfoBox("Balance", _balance, Colors.grey.shade800,
+                isDeficit ? Colors.red : Colors.white),
+          ],
         ),
+        SizedBox(height: 16),
         Expanded(
           child: _transactions.isEmpty
               ? Center(
@@ -159,22 +226,30 @@ class _HomePageContentState extends State<HomePageContent> {
                       style: TextStyle(color: Colors.white)))
               : ListView.builder(
                   itemCount: _transactions.length,
+                  padding: EdgeInsets.only(
+                      bottom: 80), // 👈 adds space below last item
                   itemBuilder: (context, index) {
-                    final transaction = _transactions[index];
-                    bool isIncome = transaction['type'] == 'income';
-                    String categoryName = transaction['category_name'] ?? 'Other';
-                    
+                    final tx = _transactions[index];
+                    bool isIncome = tx['type'] == 'income';
+                    String categoryOrNote = isIncome
+                        ? (tx['note'] ?? 'Other')
+                        : (tx['categories']?['name'] ?? 'Other');
+
                     return ListTile(
                       title: Text(
-                        "${isIncome ? 'Income' : 'Expense'} ($categoryName): ₹${transaction['amount']}",
+                        "${isIncome ? 'Income' : 'Expense'} ($categoryOrNote): ₹${tx['amount']}",
                         style: TextStyle(
                             color: isIncome ? Colors.green : Colors.red),
                       ),
                       subtitle: Text(
-                        DateTime.parse(transaction['date']).toString().split('.')[0],
-                        style: TextStyle(color: Colors.grey)
+                        '${DateFormat('yyyy-MM-dd').format(DateTime.parse(tx['created_at']).toLocal())} '
+                        '              ${DateFormat('h:mm a').format(DateTime.parse(tx['created_at']).toLocal())}',
+                        style: TextStyle(color: Colors.grey),
                       ),
-                      trailing: Icon(Icons.arrow_forward, color: Colors.green),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _confirmDelete(tx['id']),
+                      ),
                     );
                   },
                 ),
