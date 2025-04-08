@@ -7,6 +7,7 @@ import 'package:moneylog/screens/userprofile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:moneylog/screens/connections.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,7 +23,7 @@ class _HomePageState extends State<HomePage> {
     HomePageContent(),
     BudgetPage(),
     AnalyticsPage(),
-    UserProfile(),
+    ConnectionsPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -36,10 +37,22 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Center(
-          child: Text("MoneyLog", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 28)),
+          child: Text("MoneyLog", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 28), textAlign: TextAlign.center,),
         ),
         backgroundColor: Colors.black,
-        iconTheme: IconThemeData(color: Colors.green),
+        iconTheme: const IconThemeData(color: Colors.green),
+        actions: [
+          IconButton(
+            icon: const Icon(Iconsax.profile_circle),
+            color: Colors.green,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const UserProfile()),
+              );
+            },
+          )
+        ],
       ),
       backgroundColor: Colors.black,
       body: _pages[_selectedIndex],
@@ -47,16 +60,16 @@ class _HomePageState extends State<HomePage> {
         onPressed: () async {
           final result = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TransactionPage()),
+            MaterialPageRoute(builder: (context) => const TransactionPage()),
           );
           if (result == true) {
             setState(() {
-              _pages[0] = HomePageContent(); // Refresh
+              _pages[0] = const HomePageContent(); // Refresh
             });
           }
         },
         backgroundColor: Colors.green,
-        child: Icon(Icons.add, color: Colors.black),
+        child: const Icon(Icons.add, color: Colors.black),
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black,
@@ -68,7 +81,7 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(icon: Icon(Iconsax.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Iconsax.wallet), label: "Budget"),
           BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: "Analysis"),
-          BottomNavigationBarItem(icon: Icon(Iconsax.user_search), label: "Profile"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.people), label: "Connections"), 
         ],
       ),
     );
@@ -164,7 +177,7 @@ class _HomePageContentState extends State<HomePageContent> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Transaction deleted.")),
+        const SnackBar(content: Text("Transaction deleted.")),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -177,19 +190,19 @@ class _HomePageContentState extends State<HomePageContent> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Delete Transaction"),
-        content: Text("Are you sure you want to delete this transaction?"),
+        title: const Text("Delete Transaction"),
+        content: const Text("Are you sure you want to delete this transaction?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text("Cancel"),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               _deleteTransaction(transactionId);
             },
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -200,8 +213,8 @@ class _HomePageContentState extends State<HomePageContent> {
       String title, double amount, Color bgColor, Color textColor) {
     return Expanded(
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 6),
-        padding: EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
@@ -209,11 +222,11 @@ class _HomePageContentState extends State<HomePageContent> {
         child: Column(
           children: [
             Text(title,
-                style: TextStyle(
+                style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.white)),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text("₹${amount.abs().toStringAsFixed(2)}",
                 style: TextStyle(
                     fontSize: 20,
@@ -265,7 +278,7 @@ class _HomePageContentState extends State<HomePageContent> {
 
     return Column(
       children: [
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         Row(
           children: [
             _buildInfoBox(
