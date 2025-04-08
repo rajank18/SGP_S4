@@ -36,15 +36,25 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Center(
-          child: Text("MoneyLog", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 28), textAlign: TextAlign.center,),
+        title: Text(
+          "MoneyLog",
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 28,
+          ),
+          textAlign: TextAlign.center,
         ),
+        centerTitle: true,
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.green),
         actions: [
           IconButton(
-            icon: const Icon(Iconsax.profile_circle),
-            color: Colors.green,
+            icon: const Icon(
+              Icons.person,
+              size: 36,
+            ),
+            color: const Color.fromARGB(255, 255, 255, 255),
             onPressed: () {
               Navigator.push(
                 context,
@@ -80,8 +90,10 @@ class _HomePageState extends State<HomePage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Iconsax.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Iconsax.wallet), label: "Budget"),
-          BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: "Analysis"),
-          BottomNavigationBarItem(icon: Icon(Iconsax.people), label: "Connections"), 
+          BottomNavigationBarItem(
+              icon: Icon(Iconsax.chart_2), label: "Analysis"),
+          BottomNavigationBarItem(
+              icon: Icon(Iconsax.people), label: "Connections"),
         ],
       ),
     );
@@ -191,7 +203,8 @@ class _HomePageContentState extends State<HomePageContent> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Delete Transaction"),
-        content: const Text("Are you sure you want to delete this transaction?"),
+        content:
+            const Text("Are you sure you want to delete this transaction?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -281,10 +294,10 @@ class _HomePageContentState extends State<HomePageContent> {
         const SizedBox(height: 16),
         Row(
           children: [
-            _buildInfoBox(
-                "Income", _totalIncome, const Color.fromARGB(255, 161, 204, 112), Colors.white),
-            _buildInfoBox(
-                "Expense", _totalExpense, const Color.fromARGB(255, 216, 113, 112), Colors.white),
+            _buildInfoBox("Income", _totalIncome,
+                const Color.fromARGB(255, 161, 204, 112), Colors.white),
+            _buildInfoBox("Expense", _totalExpense,
+                const Color.fromARGB(255, 216, 113, 112), Colors.white),
             _buildInfoBox("Balance", _balance, Colors.grey.shade700,
                 isDeficit ? Colors.red : Colors.white),
           ],
@@ -331,7 +344,8 @@ class _HomePageContentState extends State<HomePageContent> {
                         : (tx['categories']?['name'] ?? 'Other');
 
                     return ListTile(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       title: Row(
                         children: [
                           Text(
@@ -341,7 +355,9 @@ class _HomePageContentState extends State<HomePageContent> {
                           Text(
                             "₹${tx['amount']}",
                             style: TextStyle(
-                              color: isIncome ? const Color.fromARGB(255, 169, 206, 126) : const Color.fromARGB(255, 216, 113, 112),
+                              color: isIncome
+                                  ? const Color.fromARGB(255, 169, 206, 126)
+                                  : const Color.fromARGB(255, 216, 113, 112),
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -362,7 +378,8 @@ class _HomePageContentState extends State<HomePageContent> {
                           SizedBox(height: 2),
                           Text(
                             '${DateFormat('d MMM').format(DateTime.parse(tx['created_at']).toLocal())}',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 12),
                           ),
                         ],
                       ),
