@@ -4,6 +4,7 @@ import 'package:moneylog/screens/budgetpage.dart';
 import 'package:moneylog/screens/analysis.dart';
 import 'package:moneylog/screens/userprofile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:iconsax/iconsax.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -66,10 +67,10 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.wallet), label: "Budget"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Analysis"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.wallet), label: "Budget"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: "Analysis"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.profile_circle), label: "Profile"),
         ],
       ),
     );
