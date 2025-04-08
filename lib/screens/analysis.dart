@@ -58,7 +58,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   Future<void> _fetchTransactionData() async {
     setState(() => isLoading = true);
-    
+
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
@@ -67,7 +67,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     try {
       final response = await supabase
           .from('transactions')
-          .select()
+          .select('amount, type, date, category_id, categories(name)')
           .eq('user_id', user.id)
           .gte('date', startDate.toIso8601String())
           .order('date', ascending: false);
@@ -78,10 +78,14 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
       for (var transaction in response) {
         double amount = double.tryParse(transaction['amount'].toString()) ?? 0;
-        String category = transaction['category_name'] ?? 'Other';
+        final categoryData = transaction['categories'];
+        String category = categoryData != null && categoryData['name'] != null
+            ? categoryData['name']
+            : 'Other';
 
         if (transaction['type'] == 'expense') {
-          expensesByCategory[category] = (expensesByCategory[category] ?? 0) + amount;
+          expensesByCategory[category] =
+              (expensesByCategory[category] ?? 0) + amount;
           expenses += amount;
         } else if (transaction['type'] == 'income') {
           income += amount;
@@ -255,9 +259,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                 ),
                               ),
                               SizedBox(height: 20),
-                              // Legend
                               ...categoryExpenses.entries.map((entry) {
-                                final index = categoryExpenses.keys.toList().indexOf(entry.key);
+                                final index = categoryExpenses.keys
+                                    .toList()
+                                    .indexOf(entry.key);
                                 final colors = [
                                   Colors.blue,
                                   Colors.red,
@@ -269,7 +274,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                   Colors.teal,
                                 ];
                                 return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 4.0),
                                   child: Row(
                                     children: [
                                       Container(
