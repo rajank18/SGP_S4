@@ -36,7 +36,8 @@ class _UserProfileState extends State<UserProfile> {
           .eq('user_id', user.id);
 
       double budgetSum = budgetResponse.isNotEmpty
-          ? budgetResponse.fold<double>(0.0, (sum, item) => sum + (item['amount'] as double))
+          ? budgetResponse.fold<double>(
+              0.0, (sum, item) => sum + (item['amount'] as double))
           : 0.0;
 
       setState(() {
@@ -50,6 +51,22 @@ class _UserProfileState extends State<UserProfile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.green),
+          onPressed: () {
+            Navigator.pop(context); // 👈 This takes user back
+          },
+        ),
+        title: const Text(
+          'User Profile',
+          style: TextStyle(color: Colors.green),
+        ),
+      ),
+      backgroundColor: const Color.fromARGB(255, 246, 246, 246),
       body: Center(
         child: Card(
           elevation: 10,
@@ -57,9 +74,9 @@ class _UserProfileState extends State<UserProfile> {
             borderRadius: BorderRadius.circular(16),
           ),
           color: Colors.black,
-          margin: EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
           child: Padding(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -69,42 +86,52 @@ class _UserProfileState extends State<UserProfile> {
                   backgroundColor: Colors.green,
                   child: Text(
                     userName.isNotEmpty ? userName[0].toUpperCase() : "?",
-                    style: TextStyle(fontSize: 30, color: Colors.white),
+                    style: const TextStyle(fontSize: 30, color: Colors.white),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
                   userName,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   userEmail,
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
+                  style: const TextStyle(fontSize: 16, color: Colors.white70),
                 ),
-                SizedBox(height: 8),
-                Divider(color: Colors.grey),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Divider(color: Colors.grey),
+                const SizedBox(height: 8),
+                const Text(
                   "Total Budget",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   " ${totalBudget.toStringAsFixed(2)} ₹",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
+                  style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.greenAccent),
                   onPressed: () async {
                     await supabase.auth.signOut();
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (_) => LoginPage()),
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
                     );
                   },
-                  child: Text("Sign Out"),
+                  child: const Text("Sign Out"),
                 ),
               ],
             ),
