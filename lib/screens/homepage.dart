@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:moneylog/screens/transaction.dart';
 import 'package:moneylog/screens/budgetpage.dart';
 import 'package:moneylog/screens/analysis.dart';
@@ -35,7 +36,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Center(
-          child: Text("MoneyLog", style: TextStyle(color: Colors.green)),
+          child: Text("MoneyLog", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 28)),
         ),
         backgroundColor: Colors.black,
         iconTheme: IconThemeData(color: Colors.green),
@@ -64,10 +65,10 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Iconsax.wallet), label: "Budget"),
           BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: "Analysis"),
-          BottomNavigationBarItem(icon: Icon(Iconsax.profile_circle), label: "Profile"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.user_search), label: "Profile"),
         ],
       ),
     );
@@ -84,9 +85,11 @@ class HomePageContent extends StatefulWidget {
 class _HomePageContentState extends State<HomePageContent> {
   final supabase = Supabase.instance.client;
   List<dynamic> _transactions = [];
+  List<dynamic> _filteredTransactions = [];
   double _balance = 0.0;
   double _totalIncome = 0.0;
   double _totalExpense = 0.0;
+  DateTime _currentDate = DateTime.now();
 
   @override
   void initState() {
@@ -121,6 +124,27 @@ class _HomePageContentState extends State<HomePageContent> {
       _totalIncome = income;
       _totalExpense = expense;
       _balance = income - expense;
+      _filterTransactions();
+    });
+  }
+
+  void _filterTransactions() {
+    final startOfMonth = DateTime(_currentDate.year, _currentDate.month, 1);
+    final endOfMonth = DateTime(_currentDate.year, _currentDate.month + 1, 0);
+
+    setState(() {
+      _filteredTransactions = _transactions.where((tx) {
+        final txDate = DateTime.parse(tx['created_at']).toLocal();
+        return txDate.isAfter(startOfMonth.subtract(Duration(days: 1))) &&
+            txDate.isBefore(endOfMonth.add(Duration(days: 1)));
+      }).toList();
+    });
+  }
+
+  void _changeMonth(int delta) {
+    setState(() {
+      _currentDate = DateTime(_currentDate.year, _currentDate.month + delta, 1);
+      _filterTransactions();
     });
   }
 
@@ -201,6 +225,40 @@ class _HomePageContentState extends State<HomePageContent> {
     );
   }
 
+  Widget _buildMonthNavigator() {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: Colors.green),
+            onPressed: () => _changeMonth(-1),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              DateFormat('MMMM yyyy').format(_currentDate),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.arrow_forward_ios, color: Colors.green),
+            onPressed: () => _changeMonth(1),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDeficit = _totalExpense > _totalIncome;
@@ -211,43 +269,92 @@ class _HomePageContentState extends State<HomePageContent> {
         Row(
           children: [
             _buildInfoBox(
-                "Income", _totalIncome, Colors.green.shade700, Colors.white),
+                "Income", _totalIncome, const Color.fromARGB(255, 161, 204, 112), Colors.white),
             _buildInfoBox(
-                "Expense", _totalExpense, Colors.red.shade700, Colors.white),
-            _buildInfoBox("Balance", _balance, Colors.grey.shade800,
+                "Expense", _totalExpense, const Color.fromARGB(255, 216, 113, 112), Colors.white),
+            _buildInfoBox("Balance", _balance, Colors.grey.shade700,
                 isDeficit ? Colors.red : Colors.white),
           ],
         ),
-        SizedBox(height: 16),
+        _buildMonthNavigator(),
         Expanded(
-          child: _transactions.isEmpty
+          child: _filteredTransactions.isEmpty
               ? Center(
-                  child: Text("No Transactions Found!",
-                      style: TextStyle(color: Colors.white)))
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.receipt_long,
+                        size: 64,
+                        color: Colors.grey[600],
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        "No Transactions Found!",
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 18,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "for ${DateFormat('MMMM yyyy').format(_currentDate)}",
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               : ListView.builder(
-                  itemCount: _transactions.length,
-                  padding: EdgeInsets.only(
-                      bottom: 80), // 👈 adds space below last item
+                  itemCount: _filteredTransactions.length,
+                  padding: EdgeInsets.only(bottom: 80),
                   itemBuilder: (context, index) {
-                    final tx = _transactions[index];
+                    final tx = _filteredTransactions[index];
                     bool isIncome = tx['type'] == 'income';
                     String categoryOrNote = isIncome
                         ? (tx['note'] ?? 'Other')
                         : (tx['categories']?['name'] ?? 'Other');
 
                     return ListTile(
-                      title: Text(
-                        "${isIncome ? 'Income' : 'Expense'} ($categoryOrNote): ₹${tx['amount']}",
-                        style: TextStyle(
-                            color: isIncome ? Colors.green : Colors.red),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      title: Row(
+                        children: [
+                          Text(
+                            "${isIncome ? 'Income' : 'Expense'}: ",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                          Text(
+                            "₹${tx['amount']}",
+                            style: TextStyle(
+                              color: isIncome ? const Color.fromARGB(255, 169, 206, 126) : const Color.fromARGB(255, 216, 113, 112),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
                       ),
-                      subtitle: Text(
-                        '${DateFormat('yyyy-MM-dd').format(DateTime.parse(tx['created_at']).toLocal())} '
-                        '              ${DateFormat('h:mm a').format(DateTime.parse(tx['created_at']).toLocal())}',
-                        style: TextStyle(color: Colors.grey),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            categoryOrNote,
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 14,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            '${DateFormat('d MMM').format(DateTime.parse(tx['created_at']).toLocal())}',
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                        ],
                       ),
                       trailing: IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
+                        icon: Icon(Icons.delete, color: Colors.red[300]),
                         onPressed: () => _confirmDelete(tx['id']),
                       ),
                     );

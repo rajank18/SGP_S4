@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:iconsax/iconsax.dart';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({super.key});
@@ -11,13 +12,14 @@ class AnalyticsPage extends StatefulWidget {
 
 class _AnalyticsPageState extends State<AnalyticsPage> {
   final supabase = Supabase.instance.client;
-  Map<String, double> categoryExpenses = {};
+  Map<String, double> categoryData = {};
   double totalExpenses = 0;
   double totalIncome = 0;
   bool isLoading = true;
-  String _selectedDuration = 'Weekly'; // Default duration
-
+  String _selectedDuration = 'Weekly';
+  String _selectedType = 'expense'; // Default to expense
   final List<String> _durations = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
+  final List<String> _types = ['expense', 'income'];
 
   @override
   void initState() {
@@ -67,33 +69,37 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     try {
       final response = await supabase
           .from('transactions')
-          .select('amount, type, date, category_id, categories(name)')
+          .select('amount, type, date, category_id, categories(name), note')
           .eq('user_id', user.id)
           .gte('date', startDate.toIso8601String())
           .order('date', ascending: false);
 
-      Map<String, double> expensesByCategory = {};
+      Map<String, double> dataByCategory = {};
       double income = 0;
       double expenses = 0;
 
       for (var transaction in response) {
         double amount = double.tryParse(transaction['amount'].toString()) ?? 0;
-        final categoryData = transaction['categories'];
-        String category = categoryData != null && categoryData['name'] != null
-            ? categoryData['name']
-            : 'Other';
+        String category;
 
         if (transaction['type'] == 'expense') {
-          expensesByCategory[category] =
-              (expensesByCategory[category] ?? 0) + amount;
+          final categoryData = transaction['categories'];
+          category = categoryData != null && categoryData['name'] != null
+              ? categoryData['name']
+              : 'Other';
           expenses += amount;
-        } else if (transaction['type'] == 'income') {
+        } else {
+          category = transaction['note'] ?? 'Other';
           income += amount;
+        }
+
+        if (transaction['type'] == _selectedType) {
+          dataByCategory[category] = (dataByCategory[category] ?? 0) + amount;
         }
       }
 
       setState(() {
-        categoryExpenses = expensesByCategory;
+        categoryData = dataByCategory;
         totalExpenses = expenses;
         totalIncome = income;
         isLoading = false;
@@ -116,11 +122,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       Colors.teal,
     ];
 
-    return categoryExpenses.entries.toList().asMap().entries.map((entry) {
+    return categoryData.entries.toList().asMap().entries.map((entry) {
       final index = entry.key;
       final category = entry.value.key;
       final amount = entry.value.value;
-      final percentage = (amount / totalExpenses) * 100;
+      final total = _selectedType == 'expense' ? totalExpenses : totalIncome;
+      final percentage = (amount / total) * 100;
 
       return PieChartSectionData(
         color: colors[index % colors.length],
@@ -187,10 +194,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           Expanded(
             child: isLoading
                 ? Center(child: CircularProgressIndicator())
-                : categoryExpenses.isEmpty
+                : categoryData.isEmpty
                     ? Center(
                         child: Text(
-                          'No expenses for ${_getDurationText().toLowerCase()}',
+                          'No ${_selectedType}s for ${_getDurationText().toLowerCase()}',
                           style: TextStyle(color: Colors.white, fontSize: 16),
                         ),
                       )
@@ -238,13 +245,45 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                 ),
                               ),
                               SizedBox(height: 30),
-                              Text(
-                                'Expense Distribution',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '${_selectedType == 'expense' ? 'Expense' : 'Income'} Distribution',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: DropdownButton<String>(
+                                      value: _selectedType,
+                                      dropdownColor: Colors.black,
+                                      style: TextStyle(color: Colors.green),
+                                      underline: Container(),
+                                      items: _types.map((String type) {
+                                        return DropdownMenuItem<String>(
+                                          value: type,
+                                          child: Text(type == 'expense' ? 'Expenses' : 'Income'),
+                                        );
+                                      }).toList(),
+                                      onChanged: (String? newValue) {
+                                        if (newValue != null) {
+                                          setState(() {
+                                            _selectedType = newValue;
+                                          });
+                                          _fetchTransactionData();
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                               SizedBox(height: 20),
                               SizedBox(
@@ -253,16 +292,14 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                   PieChartData(
                                     sections: _getSections(),
                                     sectionsSpace: 2,
-                                    centerSpaceRadius: 40,
+                                    centerSpaceRadius: 30,
                                     startDegreeOffset: -90,
                                   ),
                                 ),
                               ),
                               SizedBox(height: 20),
-                              ...categoryExpenses.entries.map((entry) {
-                                final index = categoryExpenses.keys
-                                    .toList()
-                                    .indexOf(entry.key);
+                              ...categoryData.entries.map((entry) {
+                                final index = categoryData.keys.toList().indexOf(entry.key);
                                 final colors = [
                                   Colors.blue,
                                   Colors.red,
@@ -274,8 +311,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                   Colors.teal,
                                 ];
                                 return Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 4.0),
+                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
                                   child: Row(
                                     children: [
                                       Container(

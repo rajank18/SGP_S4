@@ -171,6 +171,9 @@ class _TransactionPageState extends State<TransactionPage> {
     return GridView.count(
       shrinkWrap: true,
       crossAxisCount: 3,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      childAspectRatio: 1.5,
       children: [
         ...List.generate(9, (index) => _buildNumberButton("${index + 1}")),
         _buildNumberButton("."),
@@ -178,8 +181,11 @@ class _TransactionPageState extends State<TransactionPage> {
         _buildNumberButton("C", isClear: true),
         ElevatedButton(
           onPressed: _addTransaction,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          child: Text("Enter", style: TextStyle(fontSize: 18)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            padding: EdgeInsets.symmetric(vertical: 12),
+          ),
+          child: Text("Enter", style: TextStyle(fontSize: 16, color: Colors.white)),
         ),
       ],
     );
@@ -195,8 +201,8 @@ class _TransactionPageState extends State<TransactionPage> {
         }
       },
       child: Container(
-        margin: EdgeInsets.all(4),
-        padding: EdgeInsets.all(15),
+        margin: EdgeInsets.all(2),
+        padding: EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: isClear ? Colors.red : Colors.grey[800],
           borderRadius: BorderRadius.circular(8),
@@ -204,7 +210,7 @@ class _TransactionPageState extends State<TransactionPage> {
         child: Center(
           child: Text(
             text,
-            style: TextStyle(fontSize: 20, color: Colors.white),
+            style: TextStyle(fontSize: 18, color: Colors.white),
           ),
         ),
       ),
