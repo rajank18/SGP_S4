@@ -55,6 +55,7 @@ class _HomePageState extends State<HomePage> {
           ),
           textAlign: TextAlign.center,
         ),
+        automaticallyImplyLeading: false,
         centerTitle: true,
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.green),
@@ -231,33 +232,46 @@ class _HomePageContentState extends State<HomePageContent> {
   }
 
   Widget _buildInfoBox(
-      String title, double amount, Color bgColor, Color textColor) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Column(
-          children: [
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white)),
-            const SizedBox(height: 12),
-            Text("₹${amount.abs().toStringAsFixed(2)}",
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: textColor)),
-          ],
-        ),
+    String title, double amount, Color bgColor, Color textColor) {
+  return Expanded(
+    child: Container(
+      height: 100, // ✅ Fixed height
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
       ),
-    );
-  }
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          FittedBox( // ✅ Ensures the amount fits in one line
+            child: Text(
+              "₹${amount.abs().toStringAsFixed(1)}",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 
   Widget _buildMonthNavigator() {
     return Container(

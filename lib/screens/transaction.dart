@@ -86,28 +86,6 @@ class _TransactionPageState extends State<TransactionPage> {
     String? categoryId;
 
     if (_selectedType == 'expense') {
-      final budget = await _getBudgetForCategory(_selectedCategory!);
-      if (enteredAmount > budget) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text("Budget Exceeded"),
-            content: Text(
-                "Your expense exceeds the budget for $_selectedCategory. Please update the budget."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                child: Text("OK"),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
       final categoryResponse = await supabase
           .from('categories')
           .select('id')
@@ -116,6 +94,43 @@ class _TransactionPageState extends State<TransactionPage> {
 
       if (categoryResponse != null) {
         categoryId = categoryResponse['id'];
+      }
+
+      final budget = await _getBudgetForCategory(_selectedCategory!);
+
+      if (budget == 0.0) {
+        // Show informational dialog if no budget is set
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text("Optimize Your Spending"),
+            content: Text(
+              "No budget is set for $_selectedCategory. Try our budget feature to better manage your money, track limits, and stay financially healthier!",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("OK"),
+              ),
+            ],
+          ),
+        );
+      } else if (enteredAmount > budget) {
+        // Show warning dialog if expense exceeds budget
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text("Budget Exceeded"),
+            content: Text(
+                "Your expense exceeds the budget for $_selectedCategory. Please update the budget."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("OK"),
+              ),
+            ],
+          ),
+        );
       }
     }
 
@@ -129,8 +144,12 @@ class _TransactionPageState extends State<TransactionPage> {
         'date': DateTime.now().toIso8601String(),
       });
 
-      if (_selectedType == 'expense') {
-        await _updateBudget(user.id, categoryId!, enteredAmount);
+      // 🟢 Update budget after expense transaction
+      if (_selectedType == 'expense' && categoryId != null) {
+        final budget = await _getBudgetForCategory(_selectedCategory!);
+        if (budget > 0.0) {
+          await _updateBudget(user.id, categoryId, enteredAmount);
+        }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -145,7 +164,8 @@ class _TransactionPageState extends State<TransactionPage> {
     }
   }
 
-  Future<void> _updateBudget(String userId, String categoryId, double amount) async {
+  Future<void> _updateBudget(
+      String userId, String categoryId, double amount) async {
     try {
       final response = await supabase
           .from('budgets')
