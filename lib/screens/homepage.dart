@@ -18,18 +18,28 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  final GlobalKey<_HomePageContentState> _homePageKey = GlobalKey<_HomePageContentState>();
+  late final List<Widget> _pages;
 
-  final List<Widget> _pages = [
-    HomePageContent(),
-    BudgetPage(),
-    AnalyticsPage(),
-    ConnectionsPage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomePageContent(key: _homePageKey),
+      BudgetPage(),
+      AnalyticsPage(),
+      ConnectionsPage(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  void _refreshHomePage() {
+    _homePageKey.currentState?._fetchTransactions();
   }
 
   @override
@@ -73,9 +83,7 @@ class _HomePageState extends State<HomePage> {
             MaterialPageRoute(builder: (context) => const TransactionPage()),
           );
           if (result == true) {
-            setState(() {
-              _pages[0] = const HomePageContent(); // Refresh
-            });
+            _refreshHomePage();
           }
         },
         backgroundColor: Colors.green,
@@ -236,13 +244,13 @@ class _HomePageContentState extends State<HomePageContent> {
           children: [
             Text(title,
                 style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Colors.white)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text("₹${amount.abs().toStringAsFixed(2)}",
                 style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: textColor)),
           ],
@@ -298,8 +306,8 @@ class _HomePageContentState extends State<HomePageContent> {
                 const Color.fromARGB(255, 161, 204, 112), Colors.white),
             _buildInfoBox("Expense", _totalExpense,
                 const Color.fromARGB(255, 216, 113, 112), Colors.white),
-            _buildInfoBox("Balance", _balance, Colors.grey.shade700,
-                isDeficit ? Colors.red : Colors.white),
+            _buildInfoBox("Balance", _balance, Colors.grey.shade800,
+                isDeficit ? const Color.fromARGB(255, 216, 113, 112) : Colors.white),
           ],
         ),
         _buildMonthNavigator(),
