@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:moneylog/screens/splitdetails.dart';
 
 class ConnectionsPage extends StatefulWidget {
   const ConnectionsPage({super.key});
@@ -14,6 +15,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
   Map<String, dynamic>? searchResult;
   bool isSearching = false;
+  Set<String> _hiddenPaidRequests = {};  // Store IDs of hidden paid requests
 
   Future<void> _searchByEmail() async {
     final queryEmail = _searchController.text.trim();
@@ -195,6 +197,141 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
               ),
             ],
             const SizedBox(height: 30),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Split Requests",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _getSplitRequests(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return SizedBox.shrink();
+                    }
+                    
+                    final paidRequests = snapshot.data!
+                        .where((req) => req['status'] == 'paid')
+                        .toList();
+
+                    if (paidRequests.isEmpty) {
+                      return SizedBox.shrink();
+                    }
+
+                    return IconButton(
+                      icon: Icon(Icons.delete_sweep, color: Colors.red[300]),
+                      onPressed: () => _showDeleteConfirmation(paidRequests),
+                      tooltip: 'Hide paid split requests',
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _getSplitRequests(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                } else if (snapshot.hasError) {
+                  return Text("Error: ${snapshot.error}",
+                      style: TextStyle(color: Colors.red));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Text("No split requests",
+                      style: TextStyle(color: Colors.white70));
+                }
+
+                return Column(
+                  children: snapshot.data!.map((request) {
+                    final isPending = request['status'] == 'pending';
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[850],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isPending ? Colors.orange : Colors.green,
+                          width: 1,
+                        ),
+                      ),
+                      child: InkWell(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SplitDetails(splitRequest: request),
+                          ),
+                        ).then((value) {
+                          if (value == true) {
+                            setState(() {}); // Refresh the page
+                          }
+                        }),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  request['requester_name'],
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isPending
+                                        ? Colors.orange.withOpacity(0.2)
+                                        : Colors.green.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    request['status'].toUpperCase(),
+                                    style: TextStyle(
+                                      color: isPending ? Colors.orange : Colors.green,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '₹${request['amount']}',
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (request['note'] != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                request['note'],
+                                style: TextStyle(color: Colors.grey[400]),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+            const SizedBox(height: 30),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -305,7 +442,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.green[800],
+                        color: const Color.fromARGB(255, 0, 0, 0),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -336,6 +473,89 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _getSplitRequests() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return [];
+
+    final requests = await supabase
+        .from('split_requests')
+        .select('''
+          id,
+          amount,
+          status,
+          note,
+          category_name,
+          expense_id,
+          requester_id,
+          requester:users!split_requests_requester_id_fkey(name)
+        ''')
+        .eq('receiver_id', user.id)
+        .order('created_at', ascending: false);
+
+    return requests
+        .where((req) => !_hiddenPaidRequests.contains(req['id'].toString()))
+        .map<Map<String, dynamic>>((req) {
+      return {
+        'id': req['id'],
+        'amount': req['amount'],
+        'status': req['status'],
+        'note': req['note'],
+        'category_name': req['category_name'],
+        'expense_id': req['expense_id'],
+        'requester_id': req['requester_id'],
+        'requester_name': req['requester']['name'],
+      };
+    }).toList();
+  }
+
+  void _showDeleteConfirmation(List<Map<String, dynamic>> paidRequests) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text(
+          'Delete Paid Split Requests',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'This will hide all paid split requests from your view. They will still exist in the database. Continue?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'No',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _hiddenPaidRequests.addAll(
+                  paidRequests
+                      .where((req) => req['status'] == 'paid')
+                      .map((req) => req['id'].toString())
+                );
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Paid split requests hidden'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: Text(
+              'Yes',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
       ),
     );
   }

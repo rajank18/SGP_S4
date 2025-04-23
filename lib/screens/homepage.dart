@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:moneylog/screens/connections.dart';
+import 'package:moneylog/screens/split_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -51,12 +52,12 @@ class _HomePageState extends State<HomePage> {
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.w900,
-            fontSize: 28,
+            fontSize: 26,
           ),
-          textAlign: TextAlign.center,
+          textAlign: TextAlign.left,
         ),
         automaticallyImplyLeading: false,
-        centerTitle: true,
+        centerTitle: false,
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.green),
         actions: [
@@ -135,31 +136,66 @@ class _HomePageContentState extends State<HomePageContent> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    final response = await supabase
-        .from('transactions')
-        .select('id, amount, type, date, created_at, note, categories(name)')
-        .eq('user_id', user.id)
-        .order('created_at', ascending: false);
+    try {
+      // First get all transactions that have split requests
+      final splitRequestsResponse = await supabase
+          .from('split_requests')
+          .select('expense_id')
+          .eq('requester_id', user.id);
 
-    double income = 0.0;
-    double expense = 0.0;
+      // Create a set of transaction IDs that have been split
+      final splitTransactionIds = splitRequestsResponse
+          .map((req) => req['expense_id'].toString())
+          .toSet();
 
-    for (var transaction in response) {
-      double amount = double.tryParse(transaction['amount'].toString()) ?? 0;
-      if (transaction['type'] == 'income') {
-        income += amount;
-      } else if (transaction['type'] == 'expense') {
-        expense += amount;
+      // Now fetch all transactions
+      final response = await supabase
+          .from('transactions')
+          .select('''
+            id,
+            amount,
+            type,
+            date,
+            created_at,
+            note,
+            categories(name)
+          ''')
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false);
+
+      // Add a flag to each transaction indicating if it's been split
+      final transactionsWithSplitFlag = response.map((tx) {
+        tx['is_split'] = splitTransactionIds.contains(tx['id'].toString());
+        return tx;
+      }).toList();
+
+      print('Fetched transactions: ${transactionsWithSplitFlag.length}');
+
+      double income = 0.0;
+      double expense = 0.0;
+
+      for (var transaction in transactionsWithSplitFlag) {
+        double amount = double.tryParse(transaction['amount'].toString()) ?? 0;
+        if (transaction['type'] == 'income') {
+          income += amount;
+        } else if (transaction['type'] == 'expense') {
+          expense += amount;
+        }
       }
-    }
 
-    setState(() {
-      _transactions = response;
-      _totalIncome = income;
-      _totalExpense = expense;
-      _balance = income - expense;
-      _filterTransactions();
-    });
+      setState(() {
+        _transactions = transactionsWithSplitFlag;
+        _totalIncome = income;
+        _totalExpense = expense;
+        _balance = income - expense;
+        _filterTransactions();
+      });
+    } catch (e) {
+      print('Error fetching transactions: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading transactions: $e')),
+      );
+    }
   }
 
   void _filterTransactions() {
@@ -173,6 +209,8 @@ class _HomePageContentState extends State<HomePageContent> {
             txDate.isBefore(endOfMonth.add(Duration(days: 1)));
       }).toList();
     });
+    
+    print('Filtered transactions: ${_filteredTransactions.length}'); // Debug log
   }
 
   void _changeMonth(int delta) {
@@ -307,6 +345,20 @@ class _HomePageContentState extends State<HomePageContent> {
     );
   }
 
+  bool _isTransactionSplit(dynamic transaction) {
+    return transaction['is_split'] == true;
+  }
+
+  void _showAlreadySplitMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('This expense has already been split'),
+        backgroundColor: Colors.grey,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDeficit = _totalExpense > _totalIncome;
@@ -364,6 +416,7 @@ class _HomePageContentState extends State<HomePageContent> {
                     String categoryOrNote = isIncome
                         ? (tx['note'] ?? 'Other')
                         : (tx['categories']?['name'] ?? 'Other');
+                    bool isAlreadySplit = _isTransactionSplit(tx);
 
                     return ListTile(
                       contentPadding:
@@ -405,7 +458,39 @@ class _HomePageContentState extends State<HomePageContent> {
                           ),
                         ],
                       ),
-                      trailing: IconButton(
+                      trailing: !isIncome ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.group,
+                              color: isAlreadySplit ? Colors.grey : Colors.green,
+                            ),
+                            onPressed: isAlreadySplit
+                                ? () => _showAlreadySplitMessage()
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => SplitScreen(),
+                                        settings: RouteSettings(
+                                          arguments: {
+                                            'transaction': tx,
+                                            'amount': tx['amount'],
+                                            'category': categoryOrNote,
+                                            'date': tx['created_at'],
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  },
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red[300]),
+                            onPressed: () => _confirmDelete(tx['id']),
+                          ),
+                        ],
+                      ) : IconButton(
                         icon: Icon(Icons.delete, color: Colors.red[300]),
                         onPressed: () => _confirmDelete(tx['id']),
                       ),
