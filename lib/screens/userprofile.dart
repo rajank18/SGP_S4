@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import './login.dart';
 
 class UserProfile extends StatefulWidget {
@@ -14,6 +16,8 @@ class _UserProfileState extends State<UserProfile> {
   String userName = "";
   String userEmail = "";
   double totalBudget = 0.0;
+  String? profileImageUrl;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -26,7 +30,7 @@ class _UserProfileState extends State<UserProfile> {
     if (user != null) {
       final userResponse = await supabase
           .from('users')
-          .select('name, email')
+          .select('name, email, profile_image_url')
           .eq('id', user.id)
           .single();
 
@@ -44,7 +48,56 @@ class _UserProfileState extends State<UserProfile> {
         userName = userResponse['name'] ?? "No Name";
         userEmail = userResponse['email'] ?? "No Email";
         totalBudget = budgetSum;
+        profileImageUrl = userResponse['profile_image_url'];
       });
+    }
+  }
+
+  Future<void> _uploadProfileImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      final fileExt = image.path.split('.').last;
+      final fileName = '${user.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final filePath = fileName; // Simplified file path
+
+      try {
+        // For web platform, we need to handle the file differently
+        final bytes = await image.readAsBytes();
+        final storage = supabase.storage;
+        final bucket = storage.from('user-images');
+        await bucket.uploadBinary(filePath, bytes);
+
+        // Get public URL - Using the correct Supabase URL format
+        final imageUrl = 'https://xexwvjehrpjjyuvxtfnm.supabase.co/storage/v1/object/public/user-images/$fileName';
+
+        // Update user profile with new image URL
+        await supabase
+            .from('users')
+            .update({'profile_image_url': imageUrl})
+            .eq('id', user.id);
+
+        setState(() {
+          profileImageUrl = imageUrl;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile image updated successfully')),
+        );
+      } catch (error) {
+        print('Error uploading image: $error'); // For debugging
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading image: $error')),
+        );
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading image: $error')),
+      );
     }
   }
 
@@ -58,7 +111,7 @@ class _UserProfileState extends State<UserProfile> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.green),
           onPressed: () {
-            Navigator.pop(context); // 👈 This takes user back
+            Navigator.pop(context);
           },
         ),
         title: const Text(
@@ -81,13 +134,37 @@ class _UserProfileState extends State<UserProfile> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.green,
-                  child: Text(
-                    userName.isNotEmpty ? userName[0].toUpperCase() : "?",
-                    style: const TextStyle(fontSize: 30, color: Colors.white),
-                  ),
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.green,
+                      backgroundImage: profileImageUrl != null
+                          ? NetworkImage(profileImageUrl!)
+                          : null,
+                      child: profileImageUrl == null
+                          ? Text(
+                              userName.isNotEmpty ? userName[0].toUpperCase() : "?",
+                              style: const TextStyle(fontSize: 30, color: Colors.white),
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.black, width: 2),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.camera_alt, color: Colors.white),
+                          onPressed: _uploadProfileImage,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Text(

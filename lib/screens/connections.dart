@@ -31,7 +31,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     try {
       final response = await supabase
           .from('users')
-          .select('id, name, email')
+          .select('id, name, email, profile_image_url')
           .eq('email', queryEmail)
           .single();
 
@@ -87,24 +87,31 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
   }
 
   Future<List<Map<String, dynamic>>> _getIncomingRequests() async {
-  final currentUserId = supabase.auth.currentUser?.id;
-  if (currentUserId == null) return [];
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (currentUserId == null) return [];
 
-  final requests = await supabase
-      .from('friend_requests')
-      .select('id, from_user_id, from_user:from_user_id(name, email)')
-      .eq('to_user_id', currentUserId)
-      .eq('status', 'pending');
+    final requests = await supabase
+        .from('friend_requests')
+        .select('''
+          id,
+          from_user:users!friend_requests_from_user_id_fkey(
+            name,
+            email,
+            profile_image_url
+          )
+        ''')
+        .eq('to_user_id', currentUserId)
+        .eq('status', 'pending');
 
-  return requests.map<Map<String, dynamic>>((req) {
-    return {
-      'id': req['id'],
-      'name': req['from_user']['name'],
-      'email': req['from_user']['email'],
-    };
-  }).toList();
-}
-
+    return requests.map<Map<String, dynamic>>((req) {
+      return {
+        'id': req['id'],
+        'name': req['from_user']['name'],
+        'email': req['from_user']['email'],
+        'profile_image_url': req['from_user']['profile_image_url'],
+      };
+    }).toList();
+  }
 
   Future<void> _respondToRequest(String requestId, String action) async {
     await supabase
@@ -115,16 +122,51 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
   Future<List<Map<String, dynamic>>> _getAcceptedConnections() async {
     final currentUserId = supabase.auth.currentUser?.id;
+    if (currentUserId == null) return [];
 
-    final result =
-        await supabase.rpc('get_friends', params: {'user_id': currentUserId});
+    // First get friend connections
+    final connections = await supabase
+        .from('friend_requests')
+        .select('''
+          id,
+          from_user:users!friend_requests_from_user_id_fkey(
+            name,
+            email,
+            profile_image_url
+          ),
+          to_user:users!friend_requests_to_user_id_fkey(
+            name,
+            email,
+            profile_image_url
+          )
+        ''')
+        .or('from_user_id.eq.$currentUserId,to_user_id.eq.$currentUserId')
+        .eq('status', 'accepted');
 
-    return result.map<Map<String, dynamic>>((user) {
+    // Transform the data to get a list of friends
+    return connections.map<Map<String, dynamic>>((connection) {
+      final isSender = connection['from_user']['id'] == currentUserId;
+      final friend = isSender ? connection['to_user'] : connection['from_user'];
+      
       return {
-        'name': user['name'],
-        'email': user['email'],
+        'name': friend['name'],
+        'email': friend['email'],
+        'profile_image_url': friend['profile_image_url'],
       };
     }).toList();
+  }
+
+  Widget _buildAvatar(String name, String? profileImageUrl) {
+    return CircleAvatar(
+      backgroundColor: Colors.green,
+      backgroundImage: profileImageUrl != null ? NetworkImage(profileImageUrl) : null,
+      child: profileImageUrl == null
+          ? Text(
+              name[0].toUpperCase(),
+              style: const TextStyle(color: Colors.white),
+            )
+          : null,
+    );
   }
 
   @override
@@ -165,13 +207,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: Colors.green,
-                      child: Text(
-                        searchResult!['name'][0].toUpperCase(),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
+                    _buildAvatar(searchResult!['name'], searchResult!['profile_image_url']),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -277,13 +313,22 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  request['requester_name'],
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                Row(
+                                  children: [
+                                    _buildAvatar(
+                                      request['requester_name'],
+                                      request['requester_profile_image']
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      request['requester_name'],
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -368,11 +413,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            backgroundColor: Colors.green,
-                            child: Text(req['name'][0].toUpperCase(),
-                                style: const TextStyle(color: Colors.white)),
-                          ),
+                          _buildAvatar(req['name'], req['profile_image_url']),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
@@ -447,11 +488,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            backgroundColor: Colors.white,
-                            child: Text(f['name'][0].toUpperCase(),
-                                style: TextStyle(color: Colors.green[800])),
-                          ),
+                          _buildAvatar(f['name'], f['profile_image_url']),
                           const SizedBox(width: 16),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -491,7 +528,10 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
           category_name,
           expense_id,
           requester_id,
-          requester:users!split_requests_requester_id_fkey(name)
+          requester:users!split_requests_requester_id_fkey(
+            name,
+            profile_image_url
+          )
         ''')
         .eq('receiver_id', user.id)
         .order('created_at', ascending: false);
@@ -508,6 +548,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
         'expense_id': req['expense_id'],
         'requester_id': req['requester_id'],
         'requester_name': req['requester']['name'],
+        'requester_profile_image': req['requester']['profile_image_url'],
       };
     }).toList();
   }

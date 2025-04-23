@@ -169,8 +169,6 @@ class _HomePageContentState extends State<HomePageContent> {
         return tx;
       }).toList();
 
-      print('Fetched transactions: ${transactionsWithSplitFlag.length}');
-
       double income = 0.0;
       double expense = 0.0;
 
@@ -209,8 +207,6 @@ class _HomePageContentState extends State<HomePageContent> {
             txDate.isBefore(endOfMonth.add(Duration(days: 1)));
       }).toList();
     });
-    
-    print('Filtered transactions: ${_filteredTransactions.length}'); // Debug log
   }
 
   void _changeMonth(int delta) {
