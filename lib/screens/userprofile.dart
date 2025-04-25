@@ -34,30 +34,80 @@ class _UserProfileState extends State<UserProfile> {
 
     try {
       final user = supabase.auth.currentUser;
-      if (user == null) return;
+      if (user == null) {
+        print("No user logged in");
+        return;
+      }
 
-      final userResponse = await supabase
+      // First check if user exists in users table
+      final userCheck = await supabase
           .from('users')
-          .select('name, email, profile_image_url')
+          .select('id')
           .eq('id', user.id)
           .single();
 
-      final budgetResponse = await supabase
-          .from('budgets')
-          .select('amount')
-          .eq('user_id', user.id);
+      if (userCheck == null) {
+        print("User not found in users table");
+        return;
+      }
 
-      double budgetSum = budgetResponse.isNotEmpty
-          ? budgetResponse.fold<double>(
-              0.0, (sum, item) => sum + (item['amount'] as double))
-          : 0.0;
+      // Fetch user data with retry
+      int retryCount = 0;
+      Map<String, dynamic>? userResponse;
+      while (retryCount < 3) {
+        try {
+          userResponse = await supabase
+              .from('users')
+              .select('name, email, profile_image_url')
+              .eq('id', user.id)
+              .single();
+          break;
+        } catch (e) {
+          retryCount++;
+          if (retryCount == 3) {
+            print('Failed to fetch user data after 3 retries');
+            throw e;
+          }
+          await Future.delayed(Duration(seconds: 1));
+        }
+      }
+
+      if (userResponse == null) {
+        throw Exception('Failed to fetch user data');
+      }
+
+      // Fetch budgets with retry
+      retryCount = 0;
+      List<dynamic>? budgetResponse;
+      while (retryCount < 3) {
+        try {
+          budgetResponse = await supabase
+              .from('budgets')
+              .select('amount')
+              .eq('user_id', user.id);
+          break;
+        } catch (e) {
+          retryCount++;
+          if (retryCount == 3) {
+            print('Failed to fetch budget data after 3 retries');
+            throw e;
+          }
+          await Future.delayed(Duration(seconds: 1));
+        }
+      }
+
+      double budgetSum = 0.0;
+      if (budgetResponse != null && budgetResponse.isNotEmpty) {
+        budgetSum = budgetResponse.fold<double>(
+            0.0, (sum, item) => sum + (double.tryParse(item['amount'].toString()) ?? 0.0));
+      }
 
       if (mounted) {
         setState(() {
-          userName = userResponse['name'] ?? "No Name";
-          userEmail = userResponse['email'] ?? "No Email";
+          userName = userResponse?['name'] ?? "No Name";
+          userEmail = userResponse?['email'] ?? "No Email";
           totalBudget = budgetSum;
-          profileImageUrl = userResponse['profile_image_url'];
+          profileImageUrl = userResponse?['profile_image_url'];
           _isLoading = false;
         });
       }
@@ -67,6 +117,13 @@ class _UserProfileState extends State<UserProfile> {
         setState(() {
           _isLoading = false;
         });
+        // Show error message to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading profile: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }

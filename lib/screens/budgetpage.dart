@@ -29,15 +29,31 @@ class _BudgetPageState extends State<BudgetPage> {
 
     try {
       final user = supabase.auth.currentUser;
-      if (user == null) return;
+      if (user == null) {
+        print("No user logged in");
+        return;
+      }
+
+      // First check if user exists in users table
+      final userCheck = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', user.id)
+          .single();
+
+      if (userCheck == null) {
+        print("User not found in users table");
+        return;
+      }
 
       // Fetch categories (predefined ones)
       final response = await supabase
           .from('categories')
-          .select('id, name, icon, color');
+          .select('id, name, icon, color')
+          .order('name');
 
-      if (response.isEmpty) {
-        print("No categories found.");
+      if (response == null || response.isEmpty) {
+        print("No categories found in database");
         if (mounted) {
           setState(() {
             _categories = [];
@@ -55,8 +71,10 @@ class _BudgetPageState extends State<BudgetPage> {
 
       // Convert budgets to a Map for quick lookup
       Map<String, double> budgetMap = {};
-      for (var b in budgetResponse) {
-        budgetMap[b['category_id']] = b['amount'];
+      if (budgetResponse != null) {
+        for (var b in budgetResponse) {
+          budgetMap[b['category_id']] = double.tryParse(b['amount'].toString()) ?? 0.0;
+        }
       }
 
       if (mounted) {
@@ -77,6 +95,13 @@ class _BudgetPageState extends State<BudgetPage> {
         setState(() {
           _isLoading = false;
         });
+        // Show error message to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading categories: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
