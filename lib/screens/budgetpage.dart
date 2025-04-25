@@ -12,6 +12,7 @@ class BudgetPage extends StatefulWidget {
 class _BudgetPageState extends State<BudgetPage> {
   final supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _categories = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -19,206 +20,246 @@ class _BudgetPageState extends State<BudgetPage> {
     _fetchCategories();
   }
 
- Future<void> _fetchCategories() async {
-  final user = supabase.auth.currentUser;
-  if (user == null) return;
+  Future<void> _fetchCategories() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
 
-  // Fetch categories (predefined ones)
-  final response = await supabase
-      .from('categories')
-      .select('id, name, icon, color');
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
 
-  if (response.isEmpty) {
-    print("No categories found.");
+      // Fetch categories (predefined ones)
+      final response = await supabase
+          .from('categories')
+          .select('id, name, icon, color');
+
+      if (response.isEmpty) {
+        print("No categories found.");
+        if (mounted) {
+          setState(() {
+            _categories = [];
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      // Fetch budgets for the logged-in user
+      final budgetResponse = await supabase
+          .from('budgets')
+          .select('category_id, amount')
+          .eq('user_id', user.id);
+
+      // Convert budgets to a Map for quick lookup
+      Map<String, double> budgetMap = {};
+      for (var b in budgetResponse) {
+        budgetMap[b['category_id']] = b['amount'];
+      }
+
+      if (mounted) {
+        setState(() {
+          _categories = response.map((e) => {
+            "id": e['id'],
+            "name": e['name'],
+            "icon": e['icon'],
+            "color": e['color'],
+            "budget": budgetMap[e['id']] ?? 0.0
+          }).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching categories: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
-  // Fetch budgets for the logged-in user
-  final budgetResponse = await supabase
-      .from('budgets')
-      .select('category_id, amount')
-      .eq('user_id', user.id);
+  Future<void> _setBudget(int index) async {
+    TextEditingController budgetController = TextEditingController();
 
-  // Convert budgets to a Map for quick lookup
-  Map<String, double> budgetMap = {};
-  for (var b in budgetResponse) {
-    budgetMap[b['category_id']] = b['amount'];
-  }
-
-  // Update categories with budgets
-  setState(() {
-    _categories = response.map((e) => {
-      "id": e['id'],
-      "name": e['name'],
-      "icon": e['icon'],
-      "color": e['color'],
-      "budget": budgetMap[e['id']] ?? 0.0 // Default to 0 if no budget found
-    }).toList();
-  });
-
-}
-
-
- Future<void> _setBudget(int index) async {
-  TextEditingController budgetController = TextEditingController();
-
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: Colors.black,
-        title: Text(
-          "Set Budget for ${_categories[index]['name']}",
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: TextField(
-          controller: budgetController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
-          ],
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: "Enter budget amount",
-            hintStyle: TextStyle(color: Colors.grey),
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.green),
-            ),
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.green),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          title: Text(
+            "Set Budget for ${_categories[index]['name']}",
+            style: const TextStyle(color: Colors.white),
+          ),
+          content: TextField(
+            controller: budgetController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+            ],
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: "Enter budget amount",
+              hintStyle: TextStyle(color: Colors.grey),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.green),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.green),
+              ),
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (budgetController.text.isEmpty) return;
-              final newBudget = double.parse(budgetController.text);
-              final user = supabase.auth.currentUser;
-              if (user == null) return;
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (budgetController.text.isEmpty) return;
+                final newBudget = double.parse(budgetController.text);
+                final user = supabase.auth.currentUser;
+                if (user == null) return;
 
-              final categoryId = _categories[index]['id'];
+                final categoryId = _categories[index]['id'];
 
-              try {
-                // Check if budget already exists
-                final existingBudget = await supabase
-                    .from('budgets')
-                    .select('id')
-                    .eq('category_id', categoryId)
-                    .eq('user_id', user.id)
-                    .maybeSingle();
-
-                if (existingBudget == null) {
-                  // Insert new budget
-                  await supabase.from('budgets').insert({
-                    'user_id': user.id,
-                    'category_id': categoryId,
-                    'amount': newBudget,
-                    'start_date': DateTime.now().toIso8601String(),
-                    'end_date': DateTime.now()
-                        .add(const Duration(days: 30))
-                        .toIso8601String(),
-                  });
-                } else {
-                  // Update existing budget
-                  await supabase
+                try {
+                  // Check if budget already exists
+                  final existingBudget = await supabase
                       .from('budgets')
-                      .update({'amount': newBudget})
-                      .eq('id', existingBudget['id']);
+                      .select('id')
+                      .eq('category_id', categoryId)
+                      .eq('user_id', user.id)
+                      .maybeSingle();
+
+                  if (existingBudget == null) {
+                    // Insert new budget
+                    await supabase.from('budgets').insert({
+                      'user_id': user.id,
+                      'category_id': categoryId,
+                      'amount': newBudget,
+                      'start_date': DateTime.now().toIso8601String(),
+                      'end_date': DateTime.now()
+                          .add(const Duration(days: 30))
+                          .toIso8601String(),
+                    });
+                  } else {
+                    // Update existing budget
+                    await supabase
+                        .from('budgets')
+                        .update({'amount': newBudget})
+                        .eq('id', existingBudget['id']);
+                  }
+
+                  setState(() {
+                    _categories[index]['budget'] = newBudget;
+                  });
+
+                  Navigator.pop(context);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: ${e.toString()}')),
+                  );
                 }
-
-                setState(() {
-                  _categories[index]['budget'] = newBudget;
-                });
-
-                Navigator.pop(context);
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: ${e.toString()}')),
-                );
-              }
-            },
-            child: const Text("Set", style: TextStyle(color: Colors.green)),
-          ),
-        ],
-      );
-    },
-  );
-}
-
+              },
+              child: const Text("Set", style: TextStyle(color: Colors.green)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: _categories.isEmpty
+      body: _isLoading
           ? const Center(
-              child: Text(
-                "No Categories Added",
-                style: TextStyle(color: Colors.white, fontSize: 16),
+              child: CircularProgressIndicator(
+                color: Colors.green,
               ),
             )
-          : ListView.builder(
-              itemCount: _categories.length,
-              itemBuilder: (context, index) {
-                final budget = _categories[index]['budget'] as double;
-                final Color amountColor = budget == 0 
-                    ? Colors.grey 
-                    : budget > 0 
-                        ? const Color.fromARGB(255, 169, 206, 126)  // Same green as homepage
-                        : const Color.fromARGB(255, 216, 113, 112); // Same red as homepage
-
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[850],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color.fromARGB(255, 0, 0, 0),
-                      width: 1,
-                    ),
+          : _categories.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "No Categories Found",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _fetchCategories,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
+                        child: const Text("Retry"),
+                      ),
+                    ],
                   ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(14),
-                    title: Text(
-                      _categories[index]['name'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    subtitle: Text(
-                      "Budget: ₹${_categories[index]['budget']}",
-                      style: TextStyle(
-                        color: amountColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    trailing: Container(
+                )
+              : ListView.builder(
+                  itemCount: _categories.length,
+                  itemBuilder: (context, index) {
+                    final budget = _categories[index]['budget'] as double;
+                    final Color amountColor = budget == 0 
+                        ? Colors.grey 
+                        : budget > 0 
+                            ? const Color.fromARGB(255, 169, 206, 126)  // Same green as homepage
+                            : const Color.fromARGB(255, 216, 113, 112); // Same red as homepage
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey[850],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 0, 0, 0),
+                          width: 1,
+                        ),
                       ),
-                      child: TextButton(
-                        onPressed: () => _setBudget(index),
-                        child: const Text(
-                          "Set Budget",
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(14),
+                        title: Text(
+                          _categories[index]['name'],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: Text(
+                          "Budget: ₹${_categories[index]['budget']}",
                           style: TextStyle(
-                            color: Colors.green,
+                            color: amountColor,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        trailing: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: TextButton(
+                            onPressed: () => _setBudget(index),
+                            child: const Text(
+                              "Set Budget",
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
     );
   }
 }

@@ -17,6 +17,7 @@ class _UserProfileState extends State<UserProfile> {
   double totalBudget = 0.0;
   String? profileImageUrl;
   final ImagePicker _picker = ImagePicker();
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -25,8 +26,16 @@ class _UserProfileState extends State<UserProfile> {
   }
 
   Future<void> _fetchUserData() async {
-    final user = supabase.auth.currentUser;
-    if (user != null) {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
       final userResponse = await supabase
           .from('users')
           .select('name, email, profile_image_url')
@@ -43,12 +52,22 @@ class _UserProfileState extends State<UserProfile> {
               0.0, (sum, item) => sum + (item['amount'] as double))
           : 0.0;
 
-      setState(() {
-        userName = userResponse['name'] ?? "No Name";
-        userEmail = userResponse['email'] ?? "No Email";
-        totalBudget = budgetSum;
-        profileImageUrl = userResponse['profile_image_url'];
-      });
+      if (mounted) {
+        setState(() {
+          userName = userResponse['name'] ?? "No Name";
+          userEmail = userResponse['email'] ?? "No Email";
+          totalBudget = budgetSum;
+          profileImageUrl = userResponse['profile_image_url'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -119,101 +138,107 @@ class _UserProfileState extends State<UserProfile> {
         ),
       ),
       backgroundColor: const Color.fromARGB(255, 246, 246, 246),
-      body: Center(
-        child: Card(
-          elevation: 10,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          color: Colors.black,
-          margin: const EdgeInsets.all(16),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.green,
-                      backgroundImage: profileImageUrl != null
-                          ? NetworkImage(profileImageUrl!)
-                          : null,
-                      child: profileImageUrl == null
-                          ? Text(
-                              userName.isNotEmpty ? userName[0].toUpperCase() : "?",
-                              style: const TextStyle(fontSize: 30, color: Colors.white),
-                            )
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black, width: 2),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.camera_alt, color: Colors.white),
-                          onPressed: _uploadProfileImage,
-                        ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Colors.green,
+              ),
+            )
+          : Center(
+              child: Card(
+                elevation: 10,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                color: Colors.black,
+                margin: const EdgeInsets.all(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: Colors.green,
+                            backgroundImage: profileImageUrl != null
+                                ? NetworkImage(profileImageUrl!)
+                                : null,
+                            child: profileImageUrl == null
+                                ? Text(
+                                    userName.isNotEmpty ? userName[0].toUpperCase() : "?",
+                                    style: const TextStyle(fontSize: 30, color: Colors.white),
+                                  )
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black, width: 2),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.camera_alt, color: Colors.white),
+                                onPressed: _uploadProfileImage,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        userEmail,
+                        style: const TextStyle(fontSize: 16, color: Colors.white70),
+                      ),
+                      const SizedBox(height: 8),
+                      const Divider(color: Colors.grey),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Total Budget",
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        " ${totalBudget.toStringAsFixed(2)} ₹",
+                        style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.greenAccent),
+                        onPressed: () async {
+                          await supabase.auth.signOut();
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginPage()),
+                          );
+                        },
+                        child: const Text("Sign Out"),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  userName,
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  userEmail,
-                  style: const TextStyle(fontSize: 16, color: Colors.white70),
-                ),
-                const SizedBox(height: 8),
-                const Divider(color: Colors.grey),
-                const SizedBox(height: 8),
-                const Text(
-                  "Total Budget",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  " ${totalBudget.toStringAsFixed(2)} ₹",
-                  style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.greenAccent),
-                  onPressed: () async {
-                    await supabase.auth.signOut();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginPage()),
-                    );
-                  },
-                  child: const Text("Sign Out"),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }

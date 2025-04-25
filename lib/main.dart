@@ -7,14 +7,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import './screens/signup.dart';
 import './screens/login.dart';
 
-//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
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://xexwvjehrpjjyuvxtfnm.supabase.co', 
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhleHd2amVocnBqanl1dnh0Zm5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NDkyMzgsImV4cCI6MjA1NzQyNTIzOH0.O6WkTxqJLoU7fdUiSW4LSJdhQs-ln-mFwupJXgttkns', 
+    url: '', 
+    anonKey: '', 
   );
 
   runApp(const MyApp());
