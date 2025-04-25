@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:moneylog/config/env_config.dart';
 
 class AIModelPage extends StatefulWidget {
   const AIModelPage({super.key});
@@ -18,8 +19,8 @@ class _AIModelPageState extends State<AIModelPage> {
   bool isLoading = false;
   String? aiSuggestion;
   
-  // Replace with your OpenRouter API key
-  final String openRouterApiKey = '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';
+  // Get API key from environment variables
+  String get openRouterApiKey => EnvConfig.openRouterApiKey;
   
   @override
   void initState() {
