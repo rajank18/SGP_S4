@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import './screens/signup.dart';
 import './screens/login.dart';
 
+//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
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -15,7 +17,7 @@ void main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhleHd2amVocnBqanl1dnh0Zm5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4NDkyMzgsImV4cCI6MjA1NzQyNTIzOH0.O6WkTxqJLoU7fdUiSW4LSJdhQs-ln-mFwupJXgttkns', 
   );
 
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -26,17 +28,17 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       routes: {
-        '/login': (context) => LoginPage(),
-        '/signup': (context) => SignUpPage(),
-        '/home': (context) => HomePage(),
+        '/login': (context) => const LoginPage(),
+        '/signup': (context) => const SignUpPage(),
+        '/home': (context) => const HomePage(),
       },
       home: FutureBuilder<bool>(
         future: checkFirstLaunch(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
-          return snapshot.data == true ? IntroScreen() : AuthRedirectScreen();
+          return snapshot.data == true ? const IntroScreen() : const AuthRedirectScreen();
         },
       ),
     );
@@ -65,12 +67,12 @@ class AuthRedirectScreen extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.active) {
           final session = snapshot.data?.session;
           if (session != null) {
-            return HomePage(); 
+            return const HomePage(); 
           } else {
-            return SignUpPage(); 
+            return const SignUpPage(); 
           }
         }
-        return Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
     );
   }

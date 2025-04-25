@@ -25,7 +25,7 @@ class _SignUpPageState extends State<SignUpPage>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: Duration(seconds: 10),
+      duration: const Duration(seconds: 10),
       vsync: this,
     )..repeat();
     _animation = Tween<double>(begin: 0, end: 1).animate(_animationController);
@@ -77,7 +77,7 @@ class _SignUpPageState extends State<SignUpPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 38, 38, 38),
+      backgroundColor: const Color.fromARGB(255, 38, 38, 38),
       body: Stack(
         children: [
           // Background with sparkles and flowing lines
@@ -95,19 +95,19 @@ class _SignUpPageState extends State<SignUpPage>
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                   // Logo with black background
                   Container(
-                    padding: EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
                     child: Image.asset(
                       'assets/MoneyLog (1)-2.png', // Add your logo here
                       height: 180,
                     ),
                   ),
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                   // Sign Up Card
                   Padding(
-                    padding: EdgeInsets.all(11.0),
+                    padding: const EdgeInsets.all(11.0),
                     child: Card(
                       elevation: 8.0,
                       color: Colors.black,
@@ -115,12 +115,12 @@ class _SignUpPageState extends State<SignUpPage>
                         borderRadius: BorderRadius.circular(16.0),
                       ),
                       child: Padding(
-                        padding: EdgeInsets.all(24.0),
+                        padding: const EdgeInsets.all(24.0),
                         child: Form(
                           key: _formKey,
                           child: Column(
                             children: [
-                              Text(
+                              const Text(
                                 "Create Account",
                                 style: TextStyle(
                                   fontSize: 24,
@@ -128,44 +128,44 @@ class _SignUpPageState extends State<SignUpPage>
                                   color: Colors.white,
                                 ),
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
                               TextFormField(
                                 controller: _nameController,
-                                style: TextStyle(color: Colors.white),
+                                style: const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
                                   labelText: "Name",
-                                  labelStyle: TextStyle(color: Colors.grey),
+                                  labelStyle: const TextStyle(color: Colors.grey),
                                   prefixIcon:
-                                      Icon(Icons.person, color: Colors.green),
+                                      const Icon(Icons.person, color: Colors.green),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
-                                  enabledBorder: OutlineInputBorder(
+                                  enabledBorder: const OutlineInputBorder(
                                     borderSide: BorderSide(color: Colors.grey),
                                   ),
-                                  focusedBorder: OutlineInputBorder(
+                                  focusedBorder: const OutlineInputBorder(
                                     borderSide: BorderSide(color: Colors.green),
                                   ),
                                 ),
                                 validator: (value) =>
                                     value!.isEmpty ? "Enter your name" : null,
                               ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               TextFormField(
                                 controller: _emailController,
-                                style: TextStyle(color: Colors.white),
+                                style: const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
                                   labelText: "Email",
-                                  labelStyle: TextStyle(color: Colors.grey),
+                                  labelStyle: const TextStyle(color: Colors.grey),
                                   prefixIcon:
-                                      Icon(Icons.email, color: Colors.green),
+                                      const Icon(Icons.email, color: Colors.green),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
-                                  enabledBorder: OutlineInputBorder(
+                                  enabledBorder: const OutlineInputBorder(
                                     borderSide: BorderSide(color: Colors.grey),
                                   ),
-                                  focusedBorder: OutlineInputBorder(
+                                  focusedBorder: const OutlineInputBorder(
                                     borderSide: BorderSide(color: Colors.green),
                                   ),
                                 ),
@@ -174,22 +174,22 @@ class _SignUpPageState extends State<SignUpPage>
                                     ? null
                                     : "Enter a valid email",
                               ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               TextFormField(
                                 controller: _passwordController,
-                                style: TextStyle(color: Colors.white),
+                                style: const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
                                   labelText: "Password",
-                                  labelStyle: TextStyle(color: Colors.grey),
+                                  labelStyle: const TextStyle(color: Colors.grey),
                                   prefixIcon:
-                                      Icon(Icons.lock, color: Colors.green),
+                                      const Icon(Icons.lock, color: Colors.green),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
-                                  enabledBorder: OutlineInputBorder(
+                                  enabledBorder: const OutlineInputBorder(
                                     borderSide: BorderSide(color: Colors.grey),
                                   ),
-                                  focusedBorder: OutlineInputBorder(
+                                  focusedBorder: const OutlineInputBorder(
                                     borderSide: BorderSide(color: Colors.green),
                                   ),
                                 ),
@@ -198,40 +198,40 @@ class _SignUpPageState extends State<SignUpPage>
                                     ? null
                                     : "Password must be 6+ chars",
                               ),
-                              SizedBox(height: 24),
+                              const SizedBox(height: 24),
                               if (_errorMessage != null)
                                 Text(
                                   _errorMessage!,
-                                  style: TextStyle(color: Colors.red),
+                                  style: const TextStyle(color: Colors.red),
                                 ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               _isLoading
-                                  ? CircularProgressIndicator(
+                                  ? const CircularProgressIndicator(
                                       color: Colors.green)
                                   : ElevatedButton(
                                       onPressed: _signUp,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.green,
-                                        padding: EdgeInsets.symmetric(
+                                        padding: const EdgeInsets.symmetric(
                                             horizontal: 50, vertical: 15),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(30.0),
                                         ),
                                       ),
-                                      child: Text(
+                                      child: const Text(
                                         "Sign Up",
                                         style: TextStyle(
                                             fontSize: 18, color: Colors.white),
                                       ),
                                     ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               TextButton(
                                 onPressed: () => Navigator.push(
                                     context,
                                     _createFadeRoute(
-                                        LoginPage())), // Use fade transition
-                                child: Text(
+                                        const LoginPage())), // Use fade transition
+                                child: const Text(
                                   "Already have an account? Log in",
                                   style: TextStyle(color: Colors.green),
                                 ),
@@ -304,6 +304,6 @@ Route _createFadeRoute(Widget page) {
         child: child,
       );
     },
-    transitionDuration: Duration(milliseconds: 300), // Adjust duration as needed
+    transitionDuration: const Duration(milliseconds: 300), // Adjust duration as needed
   );
 }
