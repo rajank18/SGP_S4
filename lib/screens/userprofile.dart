@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import './login.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class UserProfile extends StatefulWidget {
   const UserProfile({super.key});
@@ -34,24 +35,16 @@ class _UserProfileState extends State<UserProfile> {
 
     try {
       final user = supabase.auth.currentUser;
-      if (user == null) {
-        print("No user logged in");
-        return;
-      }
+      if (user == null) return;
 
-      // First check if user exists in users table
       final userCheck = await supabase
           .from('users')
           .select('id')
           .eq('id', user.id)
           .single();
 
-      if (userCheck == null) {
-        print("User not found in users table");
-        return;
-      }
+      if (userCheck == null) return;
 
-      // Fetch user data with retry
       int retryCount = 0;
       Map<String, dynamic>? userResponse;
       while (retryCount < 3) {
@@ -64,19 +57,13 @@ class _UserProfileState extends State<UserProfile> {
           break;
         } catch (e) {
           retryCount++;
-          if (retryCount == 3) {
-            print('Failed to fetch user data after 3 retries');
-            throw e;
-          }
+          if (retryCount == 3) throw e;
           await Future.delayed(Duration(seconds: 1));
         }
       }
 
-      if (userResponse == null) {
-        throw Exception('Failed to fetch user data');
-      }
+      if (userResponse == null) throw Exception('Failed to fetch user data');
 
-      // Fetch budgets with retry
       retryCount = 0;
       List<dynamic>? budgetResponse;
       while (retryCount < 3) {
@@ -88,10 +75,7 @@ class _UserProfileState extends State<UserProfile> {
           break;
         } catch (e) {
           retryCount++;
-          if (retryCount == 3) {
-            print('Failed to fetch budget data after 3 retries');
-            throw e;
-          }
+          if (retryCount == 3) throw e;
           await Future.delayed(Duration(seconds: 1));
         }
       }
@@ -112,17 +96,12 @@ class _UserProfileState extends State<UserProfile> {
         });
       }
     } catch (e) {
-      print('Error fetching user data: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        // Show error message to user
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading profile: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error loading profile: ${e.toString()}'), backgroundColor: Colors.red),
         );
       }
     }
@@ -138,37 +117,23 @@ class _UserProfileState extends State<UserProfile> {
 
       final fileExt = image.path.split('.').last;
       final fileName = '${user.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-      final filePath = fileName; // Simplified file path
+      final filePath = fileName;
 
-      try {
-        // For web platform, we need to handle the file differently
-        final bytes = await image.readAsBytes();
-        final storage = supabase.storage;
-        final bucket = storage.from('user-images');
-        await bucket.uploadBinary(filePath, bytes);
+      final bytes = await image.readAsBytes();
+      final bucket = supabase.storage.from('user-images');
+      await bucket.uploadBinary(filePath, bytes);
 
-        // Get public URL - Using the correct Supabase URL format
-        final imageUrl = 'https://xexwvjehrpjjyuvxtfnm.supabase.co/storage/v1/object/public/user-images/$fileName';
+      final imageUrl = 'https://xexwvjehrpjjyuvxtfnm.supabase.co/storage/v1/object/public/user-images/$fileName';
 
-        // Update user profile with new image URL
-        await supabase
-            .from('users')
-            .update({'profile_image_url': imageUrl})
-            .eq('id', user.id);
+      await supabase.from('users').update({'profile_image_url': imageUrl}).eq('id', user.id);
 
-        setState(() {
-          profileImageUrl = imageUrl;
-        });
+      setState(() {
+        profileImageUrl = imageUrl;
+      });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile image updated successfully')),
-        );
-      } catch (error) {
-        print('Error uploading image: $error'); // For debugging
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading image: $error')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile image updated successfully')),
+      );
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error uploading image: $error')),
@@ -176,8 +141,62 @@ class _UserProfileState extends State<UserProfile> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    // Show confirmation dialog before deleting account
+    bool? confirmDelete = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Are you sure?"),
+          content: const Text(
+            "This action will permanently delete your account and all associated data. Do you want to proceed?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Delete Account", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmDelete == true) {
+      try {
+        // Delete user from the 'users' table
+        await supabase.from('users').delete().eq('id', user.id);
+
+        // Sign out the user from Supabase Auth
+        await supabase.auth.signOut();
+
+        // Navigate to the login page after deleting the account
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account deleted successfully')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting account: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    TextEditingController _nameController = TextEditingController(text: userName);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
@@ -185,48 +204,36 @@ class _UserProfileState extends State<UserProfile> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.green),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'User Profile',
-          style: TextStyle(color: Colors.green),
-        ),
+        title: const Text('Profile', style: TextStyle(color: Colors.green)),
       ),
-      backgroundColor: const Color.fromARGB(255, 246, 246, 246),
+      backgroundColor: Colors.black,
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Colors.green,
-              ),
-            )
-          : Center(
-              child: Card(
-                elevation: 10,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                color: Colors.black,
-                margin: const EdgeInsets.all(16),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Stack(
+          ? const Center(child: CircularProgressIndicator(color: Colors.green))
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Center(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.green, width: 2),
+                      ),
+                      child: Stack(
                         children: [
                           CircleAvatar(
-                            radius: 40,
-                            backgroundColor: Colors.green,
+                            radius: 55,
+                            backgroundColor: Colors.black,
                             backgroundImage: profileImageUrl != null
                                 ? NetworkImage(profileImageUrl!)
                                 : null,
                             child: profileImageUrl == null
                                 ? Text(
                                     userName.isNotEmpty ? userName[0].toUpperCase() : "?",
-                                    style: const TextStyle(fontSize: 30, color: Colors.white),
+                                    style: const TextStyle(fontSize: 36, color: Colors.white),
                                   )
                                 : null,
                           ),
@@ -234,66 +241,179 @@ class _UserProfileState extends State<UserProfile> {
                             bottom: 0,
                             right: 0,
                             child: Container(
+                              padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Colors.green,
+                                color: Colors.black,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.black, width: 2),
+                                border: Border.all(color: Colors.green, width: 1.5),
                               ),
                               child: IconButton(
-                                icon: const Icon(Icons.camera_alt, color: Colors.white),
+                                icon: const Icon(Icons.edit, size: 18, color: Colors.greenAccent),
                                 onPressed: _uploadProfileImage,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        userName,
-                        style: const TextStyle(
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Stack(
+                    children: [
+                      Center(
+                        child: Text(
+                          userName,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white),
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        userEmail,
-                        style: const TextStyle(fontSize: 16, color: Colors.white70),
-                      ),
-                      const SizedBox(height: 8),
-                      const Divider(color: Colors.grey),
-                      const SizedBox(height: 8),
-                      const Text(
-                        "Total Budget",
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        " ${totalBudget.toStringAsFixed(2)} ₹",
-                        style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.greenAccent),
-                        onPressed: () async {
-                          await supabase.auth.signOut();
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (_) => const LoginPage()),
-                          );
-                        },
-                        child: const Text("Sign Out"),
+                      Positioned(
+                        right: 0,
+                        child: IconButton(
+                          icon: const Icon(Icons.edit, size: 20, color: Colors.greenAccent),
+                          onPressed: () async {
+                            final newName = await showDialog<String>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text("Edit Name"),
+                                content: TextField(
+                                  controller: _nameController,
+                                  decoration: const InputDecoration(labelText: "Name"),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text("Cancel"),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(context, _nameController.text),
+                                    child: const Text("Update"),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (newName != null && newName.trim().isNotEmpty) {
+                              final user = supabase.auth.currentUser;
+                              if (user != null) {
+                                await supabase.from('users').update({'name': newName}).eq('id', user.id);
+                                setState(() {
+                                  userName = newName;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Name updated successfully')),
+                                );
+                              }
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),
-                ),
+
+                  const SizedBox(height: 4),
+                  Text(
+                    userEmail,
+                    style: const TextStyle(fontSize: 14, color: Colors.white70),
+                  ),
+
+                  const SizedBox(height: 24),
+                  const Divider(color: Colors.grey),
+
+                  const SizedBox(height: 24),
+                  const Text(
+                    "Total Budget",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "₹ ${totalBudget.toStringAsFixed(2)}",
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
+                  ),
+
+                  const SizedBox(height: 24),
+                  const Divider(color: Colors.grey),
+
+                  const SizedBox(height: 12),
+                  // Contact Us with background
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: GestureDetector(
+                      onTap: () async {
+                        final Uri emailLaunchUri = Uri(
+                          scheme: 'mailto',
+                          path: 'kingrkr999@gmail.com',
+                          query: Uri.encodeFull('subject=App Support&body=Hello, I need help with...'),
+                        );
+                        if (await canLaunchUrl(emailLaunchUri)) {
+                          await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Could not open email app")),
+                          );
+                        }
+                      },
+                      child: const Text(
+                        "Contact Us",
+                        style: TextStyle(
+                          color: Colors.greenAccent,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  const SizedBox(height: 24),
+
+                  // Delete Account button
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    ),
+                    onPressed: _deleteAccount,
+                    child: const Text(
+                      "Delete Account",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.greenAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    ),
+                    onPressed: () async {
+                      await supabase.auth.signOut();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                      );
+                    },
+                    child: const Text(
+                      "Sign Out",
+                      style: TextStyle(color: Colors.black, fontSize: 16),
+                    ),
+                  ),
+                ],
               ),
             ),
     );
