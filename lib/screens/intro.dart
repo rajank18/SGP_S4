@@ -24,7 +24,7 @@ class IntroScreen extends StatelessWidget {
             ),
             decoration: PageDecoration(
               pageColor: Colors.black, // Page background black
-              titleTextStyle: TextStyle(
+              titleTextStyle: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.white, // White title text
@@ -33,7 +33,7 @@ class IntroScreen extends StatelessWidget {
                 fontSize: 18,
                 color: Colors.grey[400], // Light gray body text
               ),
-              imagePadding: EdgeInsets.all(20),
+              imagePadding: const EdgeInsets.all(20),
             ),
           ),
           PageViewModel(
@@ -48,7 +48,7 @@ class IntroScreen extends StatelessWidget {
             ),
             decoration: PageDecoration(
               pageColor: Colors.black,
-              titleTextStyle: TextStyle(
+              titleTextStyle: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -57,7 +57,7 @@ class IntroScreen extends StatelessWidget {
                 fontSize: 18,
                 color: Colors.grey[400],
               ),
-              imagePadding: EdgeInsets.all(20),
+              imagePadding: const EdgeInsets.all(20),
             ),
           ),
           PageViewModel(
@@ -71,7 +71,7 @@ class IntroScreen extends StatelessWidget {
             ),
             decoration: PageDecoration(
               pageColor: Colors.black,
-              titleTextStyle: TextStyle(
+              titleTextStyle: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -80,22 +80,22 @@ class IntroScreen extends StatelessWidget {
                 fontSize: 18,
                 color: Colors.grey[400],
               ),
-              imagePadding: EdgeInsets.all(20),
+              imagePadding: const EdgeInsets.all(20),
             ),
           ),
         ],
         onDone: () => _goToLogin(context),
         onSkip: () => _goToLogin(context),
         showSkipButton: true,
-        skip: Text(
+        skip: const Text(
           "Skip",
           style: TextStyle(color: Colors.white), // White skip button
         ),
-        next: Icon(
+        next: const Icon(
           Icons.arrow_forward,
           color: Colors.white, // White next icon
         ),
-        done: Text(
+        done: const Text(
           "Get Started",
           style: TextStyle(
             fontWeight: FontWeight.bold,
@@ -103,11 +103,11 @@ class IntroScreen extends StatelessWidget {
           ),
         ),
         dotsDecorator: DotsDecorator(
-          size: Size(10.0, 10.0),
-          activeSize: Size(22.0, 10.0),
+          size: const Size(10.0, 10.0),
+          activeSize: const Size(22.0, 10.0),
           activeColor: Colors.green, // Green active dot
           color: Colors.grey, // Grey inactive dots
-          spacing: EdgeInsets.symmetric(horizontal: 4.0),
+          spacing: const EdgeInsets.symmetric(horizontal: 4.0),
           activeShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25.0),
           ),
@@ -119,7 +119,7 @@ class IntroScreen extends StatelessWidget {
   void _goToLogin(BuildContext context) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => LoginPage()),
+      MaterialPageRoute(builder: (_) => const LoginPage()),
     );
   }
 }

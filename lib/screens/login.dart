@@ -24,7 +24,7 @@ class _LoginPageState extends State<LoginPage>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: Duration(seconds: 10),
+      duration: const Duration(seconds: 10),
       vsync: this,
     )..repeat();
     _animation = Tween<double>(begin: 0, end: 1).animate(_animationController);
@@ -47,10 +47,10 @@ class _LoginPageState extends State<LoginPage>
 
       if (response.session != null) {
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => HomePage()));
+            context, MaterialPageRoute(builder: (_) => const HomePage()));
       } else {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Invalid email or password")));
+            .showSnackBar(const SnackBar(content: Text("Invalid email or password")));
       }
     } on AuthException catch (e) {
       ScaffoldMessenger.of(context)
@@ -63,7 +63,7 @@ class _LoginPageState extends State<LoginPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 38, 38, 38),
+      backgroundColor: const Color.fromARGB(255, 38, 38, 38),
       body: Stack(
         children: [
           // Background with sparkles and flowing lines
@@ -81,19 +81,19 @@ class _LoginPageState extends State<LoginPage>
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                   // Logo with black background
                   Container(
-                    padding: EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
                     child: Image.asset(
                       'assets/MoneyLog (1)-2.png', // Add your logo here
                       height: 180,
                     ),
                   ),
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                   // Login Card
                   Padding(
-                    padding: EdgeInsets.all(11.0),
+                    padding: const EdgeInsets.all(11.0),
                     child: Card(
                       elevation: 8.0,
                       color: Colors.black,
@@ -101,10 +101,10 @@ class _LoginPageState extends State<LoginPage>
                         borderRadius: BorderRadius.circular(16.0),
                       ),
                       child: Padding(
-                        padding: EdgeInsets.all(24.0),
+                        padding: const EdgeInsets.all(24.0),
                         child: Column(
                           children: [
-                            Text(
+                            const Text(
                               "Welcome Back",
                               style: TextStyle(
                                 fontSize: 24,
@@ -112,75 +112,75 @@ class _LoginPageState extends State<LoginPage>
                                 color: Colors.white,
                               ),
                             ),
-                            SizedBox(height: 20),
+                            const SizedBox(height: 20),
                             TextField(
                               controller: _emailController,
-                              style: TextStyle(color: Colors.white),
+                              style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
                                 labelText: "Email",
-                                labelStyle: TextStyle(color: Colors.grey),
+                                labelStyle: const TextStyle(color: Colors.grey),
                                 prefixIcon:
-                                    Icon(Icons.email, color: Colors.green),
+                                    const Icon(Icons.email, color: Colors.green),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8.0),
                                 ),
-                                enabledBorder: OutlineInputBorder(
+                                enabledBorder: const OutlineInputBorder(
                                   borderSide: BorderSide(color: Colors.grey),
                                 ),
-                                focusedBorder: OutlineInputBorder(
+                                focusedBorder: const OutlineInputBorder(
                                   borderSide: BorderSide(color: Colors.green),
                                 ),
                               ),
                               keyboardType: TextInputType.emailAddress,
                             ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             TextField(
                               controller: _passwordController,
-                              style: TextStyle(color: Colors.white),
+                              style: const TextStyle(color: Colors.white),
                               decoration: InputDecoration(
                                 labelText: "Password",
-                                labelStyle: TextStyle(color: Colors.grey),
+                                labelStyle: const TextStyle(color: Colors.grey),
                                 prefixIcon:
-                                    Icon(Icons.lock, color: Colors.green),
+                                    const Icon(Icons.lock, color: Colors.green),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8.0),
                                 ),
-                                enabledBorder: OutlineInputBorder(
+                                enabledBorder: const OutlineInputBorder(
                                   borderSide: BorderSide(color: Colors.grey),
                                 ),
-                                focusedBorder: OutlineInputBorder(
+                                focusedBorder: const OutlineInputBorder(
                                   borderSide: BorderSide(color: Colors.green),
                                 ),
                               ),
                               obscureText: true,
                             ),
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
                             _isLoading
-                                ? CircularProgressIndicator(color: Colors.green)
+                                ? const CircularProgressIndicator(color: Colors.green)
                                 : ElevatedButton(
                                     onPressed: _signIn,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
-                                      padding: EdgeInsets.symmetric(
+                                      padding: const EdgeInsets.symmetric(
                                           horizontal: 50, vertical: 15),
                                       shape: RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(30.0),
                                       ),
                                     ),
-                                    child: Text(
+                                    child: const Text(
                                       "Login",
                                       style: TextStyle(
                                           fontSize: 18, color: Colors.white),
                                     ),
                                   ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             TextButton(
                               onPressed: () => Navigator.push(
                                   context,
                                   _createFadeRoute(
-                                      SignUpPage())), // Use fade transition
-                              child: Text(
+                                      const SignUpPage())), // Use fade transition
+                              child: const Text(
                                 "Don't have an account? Sign Up",
                                 style: TextStyle(color: Colors.green),
                               ),
@@ -253,6 +253,6 @@ Route _createFadeRoute(Widget page) {
       );
     },
     transitionDuration:
-        Duration(milliseconds: 300), // Adjust duration as needed
+        const Duration(milliseconds: 300), // Adjust duration as needed
   );
 }

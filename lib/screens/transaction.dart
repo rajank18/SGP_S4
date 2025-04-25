@@ -75,7 +75,7 @@ class _TransactionPageState extends State<TransactionPage> {
     final user = supabase.auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User not logged in!")),
+        const SnackBar(content: Text("User not logged in!")),
       );
       return;
     }
@@ -110,14 +110,14 @@ class _TransactionPageState extends State<TransactionPage> {
         await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text("Optimize Your Spending"),
+            title: const Text("Optimize Your Spending"),
             content: Text(
               "No budget is set for $_selectedCategory. Try our budget feature to better manage your money, track limits, and stay financially healthier!",
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text("OK"),
+                child: const Text("OK"),
               ),
             ],
           ),
@@ -127,13 +127,13 @@ class _TransactionPageState extends State<TransactionPage> {
         await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text("Budget Exceeded"),
+            title: const Text("Budget Exceeded"),
             content: Text(
                 "Your expense exceeds the budget for $_selectedCategory. Please update the budget."),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text("OK"),
+                child: const Text("OK"),
               ),
             ],
           ),
@@ -160,7 +160,7 @@ class _TransactionPageState extends State<TransactionPage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Transaction Added Successfully! ✅")),
+        const SnackBar(content: Text("Transaction Added Successfully! ✅")),
       );
 
       Navigator.pop(context, true);
@@ -210,9 +210,9 @@ class _TransactionPageState extends State<TransactionPage> {
           onPressed: _addTransaction,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green,
-            padding: EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 12),
           ),
-          child: Text("Enter", style: TextStyle(fontSize: 16, color: Colors.white)),
+          child: const Text("Enter", style: TextStyle(fontSize: 16, color: Colors.white)),
         ),
       ],
     );
@@ -228,8 +228,8 @@ class _TransactionPageState extends State<TransactionPage> {
         }
       },
       child: Container(
-        margin: EdgeInsets.all(2),
-        padding: EdgeInsets.symmetric(vertical: 8),
+        margin: const EdgeInsets.all(2),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: isClear ? Colors.red : Colors.grey[800],
           borderRadius: BorderRadius.circular(8),
@@ -237,7 +237,7 @@ class _TransactionPageState extends State<TransactionPage> {
         child: Center(
           child: Text(
             text,
-            style: TextStyle(fontSize: 18, color: Colors.white),
+            style: const TextStyle(fontSize: 18, color: Colors.white),
           ),
         ),
       ),
@@ -249,21 +249,21 @@ class _TransactionPageState extends State<TransactionPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text("Add Transaction", style: TextStyle(color: Colors.green)),
+        title: const Text("Add Transaction", style: TextStyle(color: Colors.green)),
         backgroundColor: Colors.black,
-        iconTheme: IconThemeData(color: Colors.green),
+        iconTheme: const IconThemeData(color: Colors.green),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Enter Amount:",
+            const Text("Enter Amount:",
                 style: TextStyle(fontSize: 18, color: Colors.white)),
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.none,
-              style: TextStyle(fontSize: 20, color: Colors.white),
+              style: const TextStyle(fontSize: 20, color: Colors.white),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.grey[900],
@@ -271,8 +271,8 @@ class _TransactionPageState extends State<TransactionPage> {
                     OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
-            SizedBox(height: 18),
-            Text("Select Type:",
+            const SizedBox(height: 18),
+            const Text("Select Type:",
                 style: TextStyle(fontSize: 18, color: Colors.white)),
             DropdownButton<String>(
               value: _selectedType,
@@ -281,7 +281,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   .map((type) => DropdownMenuItem(
                         value: type,
                         child: Text(type.toUpperCase(),
-                            style: TextStyle(color: Colors.green)),
+                            style: const TextStyle(color: Colors.green)),
                       ))
                   .toList(),
               onChanged: (val) {
@@ -290,9 +290,9 @@ class _TransactionPageState extends State<TransactionPage> {
                 });
               },
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             if (_selectedType == 'expense') ...[
-              Text("Select Category:",
+              const Text("Select Category:",
                   style: TextStyle(fontSize: 18, color: Colors.white)),
               DropdownButton<String>(
                 value: _selectedCategory,
@@ -301,21 +301,21 @@ class _TransactionPageState extends State<TransactionPage> {
                     .map((cat) => DropdownMenuItem(
                           value: cat,
                           child:
-                              Text(cat, style: TextStyle(color: Colors.green)),
+                              Text(cat, style: const TextStyle(color: Colors.green)),
                         ))
                     .toList(),
                 onChanged: (val) =>
                     setState(() => _selectedCategory = val!),
               ),
             ] else ...[
-              Text("Add Note (Optional):",
+              const Text("Add Note (Optional):",
                   style: TextStyle(fontSize: 18, color: Colors.white)),
               TextField(
                 controller: _noteController,
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: "e.g. Salary, freelance work",
-                  hintStyle: TextStyle(color: Colors.white38),
+                  hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: Colors.grey[900],
                   border:
@@ -323,7 +323,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 ),
               ),
             ],
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Expanded(child: _buildNumberPad()),
           ],
         ),

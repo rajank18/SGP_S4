@@ -9,6 +9,8 @@ import 'package:intl/intl.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:moneylog/screens/connections.dart';
 import 'package:moneylog/screens/split_screen.dart';
+import 'package:moneylog/screens/aimodel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,9 +29,10 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _pages = [
       HomePageContent(key: _homePageKey),
-      BudgetPage(),
-      AnalyticsPage(),
-      ConnectionsPage(),
+      const BudgetPage(),
+      const AnalyticsPage(),
+      const AIModelPage(),
+      const ConnectionsPage(),
     ];
   }
 
@@ -41,6 +44,10 @@ class _HomePageState extends State<HomePage> {
 
   void _refreshHomePage() {
     _homePageKey.currentState?._fetchTransactions();
+    // Clear saved AI suggestions to force refresh
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('ai_suggestion');
+    });
   }
 
   @override
@@ -97,13 +104,13 @@ class _HomePageState extends State<HomePage> {
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Iconsax.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Iconsax.wallet), label: "Budget"),
-          BottomNavigationBarItem(
-              icon: Icon(Iconsax.chart_2), label: "Analysis"),
-          BottomNavigationBarItem(
-              icon: Icon(Iconsax.people), label: "Connections"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: "Analysis"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.gemini1), label: "AI"),
+          BottomNavigationBarItem(icon: Icon(Iconsax.people), label: "Connections"),
         ],
       ),
     );
@@ -203,8 +210,8 @@ class _HomePageContentState extends State<HomePageContent> {
     setState(() {
       _filteredTransactions = _transactions.where((tx) {
         final txDate = DateTime.parse(tx['created_at']).toLocal();
-        return txDate.isAfter(startOfMonth.subtract(Duration(days: 1))) &&
-            txDate.isBefore(endOfMonth.add(Duration(days: 1)));
+        return txDate.isAfter(startOfMonth.subtract(const Duration(days: 1))) &&
+            txDate.isBefore(endOfMonth.add(const Duration(days: 1)));
       }).toList();
     });
   }
@@ -309,23 +316,23 @@ class _HomePageContentState extends State<HomePageContent> {
 
   Widget _buildMonthNavigator() {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 16),
+      margin: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: Colors.green),
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.green),
             onPressed: () => _changeMonth(-1),
           ),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.grey[900],
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               DateFormat('MMMM yyyy').format(_currentDate),
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -333,7 +340,7 @@ class _HomePageContentState extends State<HomePageContent> {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.arrow_forward_ios, color: Colors.green),
+            icon: const Icon(Icons.arrow_forward_ios, color: Colors.green),
             onPressed: () => _changeMonth(1),
           ),
         ],
@@ -384,7 +391,7 @@ class _HomePageContentState extends State<HomePageContent> {
                         size: 64,
                         color: Colors.grey[600],
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Text(
                         "No Transactions Found!",
                         style: TextStyle(
@@ -392,7 +399,7 @@ class _HomePageContentState extends State<HomePageContent> {
                           fontSize: 18,
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         "for ${DateFormat('MMMM yyyy').format(_currentDate)}",
                         style: TextStyle(
@@ -405,7 +412,7 @@ class _HomePageContentState extends State<HomePageContent> {
                 )
               : ListView.builder(
                   itemCount: _filteredTransactions.length,
-                  padding: EdgeInsets.only(bottom: 80),
+                  padding: const EdgeInsets.only(bottom: 80),
                   itemBuilder: (context, index) {
                     final tx = _filteredTransactions[index];
                     bool isIncome = tx['type'] == 'income';
@@ -416,12 +423,12 @@ class _HomePageContentState extends State<HomePageContent> {
 
                     return ListTile(
                       contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       title: Row(
                         children: [
                           Text(
                             "${isIncome ? 'Income' : 'Expense'}: ",
-                            style: TextStyle(color: Colors.white, fontSize: 16),
+                            style: const TextStyle(color: Colors.white, fontSize: 16),
                           ),
                           Text(
                             "₹${tx['amount']}",
@@ -446,9 +453,9 @@ class _HomePageContentState extends State<HomePageContent> {
                               fontStyle: FontStyle.italic,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            '${DateFormat('d MMM').format(DateTime.parse(tx['created_at']).toLocal())}',
+                            DateFormat('d MMM').format(DateTime.parse(tx['created_at']).toLocal()),
                             style: TextStyle(
                                 color: Colors.grey[600], fontSize: 12),
                           ),
@@ -468,7 +475,7 @@ class _HomePageContentState extends State<HomePageContent> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => SplitScreen(),
+                                        builder: (context) => const SplitScreen(),
                                         settings: RouteSettings(
                                           arguments: {
                                             'transaction': tx,

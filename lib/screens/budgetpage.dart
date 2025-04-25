@@ -68,16 +68,16 @@ class _BudgetPageState extends State<BudgetPage> {
         backgroundColor: Colors.black,
         title: Text(
           "Set Budget for ${_categories[index]['name']}",
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
         content: TextField(
           controller: budgetController,
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
           ],
-          style: TextStyle(color: Colors.white),
-          decoration: InputDecoration(
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
             hintText: "Enter budget amount",
             hintStyle: TextStyle(color: Colors.grey),
             enabledBorder: UnderlineInputBorder(
@@ -91,7 +91,7 @@ class _BudgetPageState extends State<BudgetPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Cancel", style: TextStyle(color: Colors.grey)),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () async {
@@ -119,7 +119,7 @@ class _BudgetPageState extends State<BudgetPage> {
                     'amount': newBudget,
                     'start_date': DateTime.now().toIso8601String(),
                     'end_date': DateTime.now()
-                        .add(Duration(days: 30))
+                        .add(const Duration(days: 30))
                         .toIso8601String(),
                   });
                 } else {
@@ -141,7 +141,7 @@ class _BudgetPageState extends State<BudgetPage> {
                 );
               }
             },
-            child: Text("Set", style: TextStyle(color: Colors.green)),
+            child: const Text("Set", style: TextStyle(color: Colors.green)),
           ),
         ],
       );
@@ -155,7 +155,7 @@ class _BudgetPageState extends State<BudgetPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: _categories.isEmpty
-          ? Center(
+          ? const Center(
               child: Text(
                 "No Categories Added",
                 style: TextStyle(color: Colors.white, fontSize: 16),
@@ -172,7 +172,7 @@ class _BudgetPageState extends State<BudgetPage> {
                         : const Color.fromARGB(255, 216, 113, 112); // Same red as homepage
 
                 return Container(
-                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   decoration: BoxDecoration(
                     color: Colors.grey[850],
                     borderRadius: BorderRadius.circular(12),
@@ -182,10 +182,10 @@ class _BudgetPageState extends State<BudgetPage> {
                     ),
                   ),
                   child: ListTile(
-                    contentPadding: EdgeInsets.all(14),
+                    contentPadding: const EdgeInsets.all(14),
                     title: Text(
                       _categories[index]['name'],
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -206,7 +206,7 @@ class _BudgetPageState extends State<BudgetPage> {
                       ),
                       child: TextButton(
                         onPressed: () => _setBudget(index),
-                        child: Text(
+                        child: const Text(
                           "Set Budget",
                           style: TextStyle(
                             color: Colors.green,

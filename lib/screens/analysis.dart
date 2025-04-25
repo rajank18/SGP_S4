@@ -33,13 +33,13 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       case 'Daily':
         return DateTime(now.year, now.month, now.day);
       case 'Weekly':
-        return now.subtract(Duration(days: 7));
+        return now.subtract(const Duration(days: 7));
       case 'Monthly':
         return DateTime(now.year, now.month, 1);
       case 'Yearly':
         return DateTime(now.year, 1, 1);
       default:
-        return now.subtract(Duration(days: 7));
+        return now.subtract(const Duration(days: 7));
     }
   }
 
@@ -164,7 +164,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         value: amount,
         title: '${percentage.toStringAsFixed(1)}%',
         radius: 100,
-        titleStyle: TextStyle(
+        titleStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
           color: Colors.white,
@@ -184,7 +184,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Duration:',
                   style: TextStyle(
                     color: Colors.white,
@@ -192,7 +192,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -200,7 +200,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                   child: DropdownButton<String>(
                     value: _selectedDuration,
                     dropdownColor: Colors.black,
-                    style: TextStyle(color: Colors.green),
+                    style: const TextStyle(color: Colors.green),
                     underline: Container(),
                     items: _durations.map((String duration) {
                       return DropdownMenuItem<String>(
@@ -223,19 +223,19 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           ),
           Expanded(
             child: isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : (totalIncome == 0 && totalExpenses == 0)
                     ? Center(
                         child: Text(
                           'No transactions for ${_getDurationText().toLowerCase()}',
-                          style: TextStyle(color: Colors.white, fontSize: 16),
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
                         ),
                       )
                     : categoryData.isEmpty
                         ? Center(
                             child: Text(
                               'No ${_selectedType}s for ${_getDurationText().toLowerCase()}',
-                              style: TextStyle(color: Colors.white, fontSize: 16),
+                              style: const TextStyle(color: Colors.white, fontSize: 16),
                             ),
                           )
                         : SingleChildScrollView(
@@ -246,15 +246,15 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                 children: [
                                   Text(
                                     '${_getDurationText()} Summary',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  SizedBox(height: 20),
+                                  const SizedBox(height: 20),
                                   Container(
-                                    padding: EdgeInsets.all(20),
+                                    padding: const EdgeInsets.all(20),
                                     decoration: BoxDecoration(
                                       color: Colors.green.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(16),
@@ -263,7 +263,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                       children: [
                                         Expanded(
                                           child: Container(
-                                            padding: EdgeInsets.all(16),
+                                            padding: const EdgeInsets.all(16),
                                             decoration: BoxDecoration(
                                               color: const Color.fromARGB(255, 66, 66, 66).withOpacity(0.3),
                                               borderRadius: BorderRadius.circular(12),
@@ -274,7 +274,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                             ),
                                             child: Column(
                                               children: [
-                                                Text(
+                                                const Text(
                                                   'Total Income',
                                                   style: TextStyle(
                                                     color: Colors.white,
@@ -282,10 +282,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                                     fontWeight: FontWeight.w500,
                                                   ),
                                                 ),
-                                                SizedBox(height: 8),
+                                                const SizedBox(height: 8),
                                                 Text(
                                                   '₹${totalIncome.toStringAsFixed(2)}',
-                                                  style: TextStyle(
+                                                  style: const TextStyle(
                                                     color: Colors.green,
                                                     fontSize: 24,
                                                     fontWeight: FontWeight.bold,
@@ -295,10 +295,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                             ),
                                           ),
                                         ),
-                                        SizedBox(width: 16),
+                                        const SizedBox(width: 16),
                                         Expanded(
                                           child: Container(
-                                            padding: EdgeInsets.all(16),
+                                            padding: const EdgeInsets.all(16),
                                             decoration: BoxDecoration(
                                               color: const Color.fromARGB(255, 66, 66, 66).withOpacity(0.3),
                                               borderRadius: BorderRadius.circular(12),
@@ -309,7 +309,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                             ),
                                             child: Column(
                                               children: [
-                                                Text(
+                                                const Text(
                                                   'Total Expenses',
                                                   style: TextStyle(
                                                     color: Colors.white,
@@ -317,10 +317,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                                     fontWeight: FontWeight.w500,
                                                   ),
                                                 ),
-                                                SizedBox(height: 8),
+                                                const SizedBox(height: 8),
                                                 Text(
                                                   '₹${totalExpenses.toStringAsFixed(2)}',
-                                                  style: TextStyle(
+                                                  style: const TextStyle(
                                                     color: Colors.red,
                                                     fontSize: 24,
                                                     fontWeight: FontWeight.bold,
@@ -333,20 +333,20 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                       ],
                                     ),
                                   ),
-                                  SizedBox(height: 30),
+                                  const SizedBox(height: 30),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         '${_selectedType == 'expense' ? 'Expense' : 'Income'} Distribution',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 12),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
                                         decoration: BoxDecoration(
                                           color: Colors.green.withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(8),
@@ -354,7 +354,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                         child: DropdownButton<String>(
                                           value: _selectedType,
                                           dropdownColor: Colors.black,
-                                          style: TextStyle(color: Colors.green),
+                                          style: const TextStyle(color: Colors.green),
                                           underline: Container(),
                                           items: _types.map((String type) {
                                             return DropdownMenuItem<String>(
@@ -374,7 +374,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 20),
+                                  const SizedBox(height: 20),
                                   SizedBox(
                                     height: 300,
                                     child: PieChart(
@@ -386,7 +386,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                       ),
                                     ),
                                   ),
-                                  SizedBox(height: 20),
+                                  const SizedBox(height: 20),
                                   ...categoryData.entries.map((entry) {
                                     final index = categoryData.keys.toList().indexOf(entry.key);
                                     final colors = [
@@ -408,10 +408,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                             height: 16,
                                             color: colors[index % colors.length],
                                           ),
-                                          SizedBox(width: 8),
+                                          const SizedBox(width: 8),
                                           Text(
                                             '${entry.key}: ₹${entry.value.toStringAsFixed(2)}',
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 16,
                                             ),

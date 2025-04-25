@@ -15,7 +15,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
 
   Map<String, dynamic>? searchResult;
   bool isSearching = false;
-  Set<String> _hiddenPaidRequests = {};  // Store IDs of hidden paid requests
+  final Set<String> _hiddenPaidRequests = {};  // Store IDs of hidden paid requests
 
   Future<void> _searchByEmail() async {
     final queryEmail = _searchController.text.trim();
@@ -236,7 +236,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   "Split Requests",
                   style: TextStyle(
                     color: Colors.white,
@@ -248,7 +248,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                   future: _getSplitRequests(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return SizedBox.shrink();
+                      return const SizedBox.shrink();
                     }
                     
                     final paidRequests = snapshot.data!
@@ -256,7 +256,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                         .toList();
 
                     if (paidRequests.isEmpty) {
-                      return SizedBox.shrink();
+                      return const SizedBox.shrink();
                     }
 
                     return IconButton(
@@ -276,7 +276,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                   return const CircularProgressIndicator();
                 } else if (snapshot.hasError) {
                   return Text("Error: ${snapshot.error}",
-                      style: TextStyle(color: Colors.red));
+                      style: const TextStyle(color: Colors.red));
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Text("No split requests",
                       style: TextStyle(color: Colors.white70));
@@ -319,7 +319,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                                       request['requester_name'],
                                       request['requester_profile_image']
                                     ),
-                                    SizedBox(width: 12),
+                                    const SizedBox(width: 12),
                                     Text(
                                       request['requester_name'],
                                       style: const TextStyle(
@@ -377,7 +377,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
               },
             ),
             const SizedBox(height: 30),
-            Align(
+            const Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 "Incoming Requests",
@@ -395,7 +395,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                   return const CircularProgressIndicator();
                 } else if (snapshot.hasError) {
                   return Text("Error: ${snapshot.error}",
-                      style: TextStyle(color: Colors.red));
+                      style: const TextStyle(color: Colors.red));
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Text("No incoming requests",
                       style: TextStyle(color: Colors.white70));
@@ -420,10 +420,10 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(req['name'],
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         color: Colors.white, fontSize: 16)),
                                 Text(req['email'],
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         color: Colors.white70, fontSize: 14)),
                               ],
                             ),
@@ -452,7 +452,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
               },
             ),
             const SizedBox(height: 30),
-            Align(
+            const Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 "Your Connections",
@@ -470,7 +470,7 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                   return const CircularProgressIndicator();
                 } else if (snapshot.hasError) {
                   return Text("Error: ${snapshot.error}",
-                      style: TextStyle(color: Colors.red));
+                      style: const TextStyle(color: Colors.red));
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Text("No connections yet",
                       style: TextStyle(color: Colors.white70));
@@ -494,10 +494,10 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(f['name'],
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       color: Colors.white, fontSize: 16)),
                               Text(f['email'],
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       color: Colors.white70, fontSize: 14)),
                             ],
                           ),
@@ -558,18 +558,18 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: Text(
+        title: const Text(
           'Delete Paid Split Requests',
           style: TextStyle(color: Colors.white),
         ),
-        content: Text(
+        content: const Text(
           'This will hide all paid split requests from your view. They will still exist in the database. Continue?',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
+            child: const Text(
               'No',
               style: TextStyle(color: Colors.grey),
             ),
@@ -585,13 +585,13 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
               });
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text('Paid split requests hidden'),
                   backgroundColor: Colors.green,
                 ),
               );
             },
-            child: Text(
+            child: const Text(
               'Yes',
               style: TextStyle(color: Colors.red),
             ),
