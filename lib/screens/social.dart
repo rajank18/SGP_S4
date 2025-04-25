@@ -128,40 +128,53 @@ class _SocialPageState extends State<SocialPage> {
   }
 
   Future<List<Map<String, dynamic>>> _getAcceptedConnections() async {
-    final currentUserId = supabase.auth.currentUser?.id;
-    if (currentUserId == null) return [];
+  final currentUserId = supabase.auth.currentUser?.id;
+  if (currentUserId == null) return [];
 
-    // First get friend connections
-    final connections = await supabase
-        .from('friend_requests')
-        .select('''
+  final connections = await supabase
+      .from('friend_requests')
+      .select('''
+        id,
+        from_user:users!friend_requests_from_user_id_fkey(
           id,
-          from_user:users!friend_requests_from_user_id_fkey(
-            name,
-            email,
-            profile_image_url
-          ),
-          to_user:users!friend_requests_to_user_id_fkey(
-            name,
-            email,
-            profile_image_url
-          )
-        ''')
-        .or('from_user_id.eq.$currentUserId,to_user_id.eq.$currentUserId')
-        .eq('status', 'accepted');
+          name,
+          email,
+          profile_image_url
+        ),
+        to_user:users!friend_requests_to_user_id_fkey(
+          id,
+          name,
+          email,
+          profile_image_url
+        )
+      ''')
+      .or('from_user_id.eq.$currentUserId,to_user_id.eq.$currentUserId')
+      .eq('status', 'accepted');
 
-    // Transform the data to get a list of friends
-    return connections.map<Map<String, dynamic>>((connection) {
-      final isSender = connection['from_user']['id'] == currentUserId;
-      final friend = isSender ? connection['to_user'] : connection['from_user'];
-      
-      return {
+  final seenFriendIds = <String>{};
+  final List<Map<String, dynamic>> uniqueFriends = [];
+
+  for (final connection in connections) {
+    final fromUser = connection['from_user'];
+    final toUser = connection['to_user'];
+
+    // Determine the friend (the one who is NOT the current user)
+    final friend = fromUser['id'] == currentUserId ? toUser : fromUser;
+
+    // Skip if already added
+    if (!seenFriendIds.contains(friend['id'])) {
+      seenFriendIds.add(friend['id']);
+      uniqueFriends.add({
         'name': friend['name'],
         'email': friend['email'],
         'profile_image_url': friend['profile_image_url'],
-      };
-    }).toList();
+      });
+    }
   }
+
+  return uniqueFriends;
+}
+
 
   Widget _buildAvatar(String name, String? profileImageUrl) {
     return CircleAvatar(
