@@ -11,14 +11,22 @@ class SplitScreen extends StatefulWidget {
 class _SplitScreenState extends State<SplitScreen> {
   final supabase = Supabase.instance.client;
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
   final _noteController = TextEditingController();
+  final _amountController = TextEditingController();
   final List<Map<String, dynamic>> _splitRequests = [];
+  final List<Map<String, dynamic>> _friends = [];
+  Map<String, dynamic>? _selectedFriend;
   double _remainingAmount = 0;
   late Map<String, dynamic> _transaction;
   late double _totalAmount;
   late String _category;
   late DateTime _date;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFriends();
+  }
 
   @override
   void didChangeDependencies() {
@@ -33,70 +41,102 @@ class _SplitScreenState extends State<SplitScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
     _noteController.dispose();
+    _amountController.dispose();
     super.dispose();
   }
 
-  Future<Map<String, dynamic>?> _searchUser(String email) async {
+  Future<void> _loadFriends() async {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) return;
+
     try {
       final response = await supabase
-          .from('users')
-          .select('id, email, name')
-          .eq('email', email)
-          .single();
-      return response;
+          .from('friend_requests')
+          .select(
+            '''
+            from_user_id,
+            to_user_id,
+            from_user:users!friend_requests_from_user_id_fkey(id, email, name),
+            to_user:users!friend_requests_to_user_id_fkey(id, email, name)
+            '''
+          )
+          .or('from_user_id.eq.${currentUser.id},to_user_id.eq.${currentUser.id}')
+          .eq('status', 'accepted');
+
+      final seenFriendIds = <String>{};
+      final List<Map<String, dynamic>> uniqueFriends = [];
+
+      for (final item in response) {
+        final fromUser = item['from_user'];
+        final toUser = item['to_user'];
+
+        // Determine the friend — the one who's NOT the current user
+        final friend = fromUser['id'] == currentUser.id ? toUser : fromUser;
+
+        // Skip duplicates
+        if (!seenFriendIds.contains(friend['id'])) {
+          seenFriendIds.add(friend['id']);
+          uniqueFriends.add(friend);
+        }
+      }
+
+      setState(() {
+        _friends.clear();
+        _friends.addAll(uniqueFriends);
+      });
     } catch (e) {
-      return null;
+      debugPrint('Error fetching friends: $e');
     }
   }
 
+  void _selectFriend(Map<String, dynamic> friend) {
+    setState(() {
+      _selectedFriend = friend;
+    });
+  }
+
   void _addSplitRequest() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final email = _emailController.text.trim();
-    final amount = _remainingAmount;
-    final note = _noteController.text.trim();
-
-    // Search for user by email
-    final user = await _searchUser(email);
-    if (user == null) {
+    if (_selectedFriend == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not found')),
+        const SnackBar(content: Text('Please select a friend first')),
       );
       return;
     }
 
-    // Check if user is trying to split with themselves
-    final currentUser = supabase.auth.currentUser;
-    if (user['id'] == currentUser?.id) {
+    if (!_formKey.currentState!.validate()) return;
+
+    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    final note = _noteController.text.trim();
+
+    if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You cannot split with yourself')),
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
+
+    if (amount > _remainingAmount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Amount cannot exceed remaining amount')),
       );
       return;
     }
 
     setState(() {
       _splitRequests.add({
-        'receiver_id': user['id'],
-        'receiver_email': user['email'],
-        'receiver_name': user['name'],
+        'receiver_id': _selectedFriend!['id'],
+        'receiver_email': _selectedFriend!['email'],
+        'receiver_name': _selectedFriend!['name'],
         'amount': amount,
         'note': note,
       });
       _recalculateRemaining();
+      _selectedFriend = null;
     });
 
-    _emailController.clear();
     _noteController.clear();
-  }
-
-  void _updateAmount(int index, String value) {
-    final newAmount = double.tryParse(value) ?? 0;
-    setState(() {
-      _splitRequests[index]['amount'] = newAmount;
-      _recalculateRemaining();
-    });
+    _amountController.clear();
   }
 
   void _recalculateRemaining() {
@@ -121,16 +161,15 @@ class _SplitScreenState extends State<SplitScreen> {
       return;
     }
 
-    if (_remainingAmount > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please allocate the entire amount')),
-      );
-      return;
-    }
-
     try {
       final user = supabase.auth.currentUser;
       if (user == null) return;
+
+      // Update the original transaction amount to your share
+      await supabase
+          .from('transactions')
+          .update({'amount': _remainingAmount})
+          .eq('id', _transaction['id']);
 
       // Create split requests for each person
       for (var request in _splitRequests) {
@@ -148,7 +187,7 @@ class _SplitScreenState extends State<SplitScreen> {
       }
 
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context, true); // Pass true to indicate refresh needed
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Split requests sent successfully'),
@@ -177,171 +216,317 @@ class _SplitScreenState extends State<SplitScreen> {
         title: const Text('Split Expense', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.green),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              color: Colors.grey[900],
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Text(
-                      'Total Amount: ₹${_totalAmount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Remaining: ₹${_remainingAmount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: _remainingAmount == 0 ? Colors.green : Colors.red,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _emailController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Friend\'s Email',
-                      labelStyle: const TextStyle(color: Colors.green),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.green),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.green, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[900],
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter an email';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _noteController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Note (Optional)',
-                      labelStyle: const TextStyle(color: Colors.green),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.green),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.green, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[900],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: _addSplitRequest,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    child: const Text('Add Split Request', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _splitRequests.length,
-                itemBuilder: (context, index) {
-                  final request = _splitRequests[index];
-                  return Card(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
                     color: Colors.grey[900],
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: ListTile(
-                      title: Text(
-                        request['receiver_name'],
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            request['receiver_email'],
-                            style: TextStyle(color: Colors.grey[400]),
-                          ),
-                          TextFormField(
-                            initialValue: request['amount'].toString(),
-                            style: const TextStyle(color: Colors.white),
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Amount',
-                              labelStyle: const TextStyle(color: Colors.green),
-                              prefixText: '₹',
-                              prefixStyle: const TextStyle(color: Colors.green),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[700]!),
-                              ),
-                              focusedBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.green),
-                              ),
+                          const Text(
+                            'Total Amount',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
                             ),
-                            onChanged: (value) => _updateAmount(index, value),
+                          ),
+                          Text(
+                            '₹${_totalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removeSplitRequest(index),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Your Share',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            '₹${_remainingAmount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: _remainingAmount == 0 ? Colors.green : Colors.red,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (_friends.isNotEmpty) ...[
+                  const Text(
+                    'Select Friend',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: ListView.builder(
+                      itemCount: _friends.length,
+                      itemBuilder: (context, index) {
+                        final friend = _friends[index];
+                        final isSelected = _selectedFriend?['id'] == friend['id'];
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.green.withOpacity(0.1) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected ? Colors.green : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            title: Text(friend['name'], style: const TextStyle(color: Colors.white)),
+                            subtitle: Text(friend['email'], style: TextStyle(color: Colors.grey[400])),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.add, color: Colors.green),
+                              onPressed: () => _selectFriend(friend),
+                            ),
+                            onTap: () => _selectFriend(friend),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                Form(
+                  key: _formKey,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _amountController,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Amount to Split',
+                            labelStyle: const TextStyle(color: Colors.green),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.green),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.green, width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[850],
+                            prefixIcon: const Icon(Icons.currency_rupee, color: Colors.green),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter an amount';
+                            }
+                            final amount = double.tryParse(value);
+                            if (amount == null || amount <= 0) {
+                              return 'Please enter a valid amount';
+                            }
+                            if (amount > _remainingAmount) {
+                              return 'Amount cannot exceed remaining amount';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _noteController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: 'Note (Optional)',
+                            labelStyle: const TextStyle(color: Colors.green),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.green),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.green, width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[850],
+                            prefixIcon: const Icon(Icons.note, color: Colors.green),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: _addSplitRequest,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 107, 138, 218),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            minimumSize: const Size(double.infinity, 45),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add, color: Colors.white),
+                          label: const Text('Add Split Request', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (_splitRequests.isNotEmpty) ...[
+                  ..._splitRequests.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final request = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[900],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(12),
+                        title: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: Colors.green,
+                              child: Text(
+                                request['receiver_name'][0].toUpperCase(),
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    request['receiver_name'],
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    request['receiver_email'],
+                                    style: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            Text(
+                              '₹${request['amount'].toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (request['note'] != null && request['note'].isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                request['note'],
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _removeSplitRequest(index),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: Text(
+                        "No Split Requests Added",
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 18,
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: _saveSplitRequests,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    minimumSize: const Size(double.infinity, 45),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.send, color: Colors.white),
+                  label: const Text(
+                    'Send Split Requests',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _saveSplitRequests,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: const Text(
-                'Send Split Requests',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

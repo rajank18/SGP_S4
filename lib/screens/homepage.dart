@@ -7,7 +7,7 @@ import 'package:moneylog/screens/userprofile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:moneylog/screens/connections.dart';
+import 'package:moneylog/screens/social.dart';
 import 'package:moneylog/screens/split_screen.dart';
 import 'package:moneylog/screens/aimodel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,24 +16,56 @@ class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  HomePageState createState() => HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+class HomePageState extends State<HomePage> {
+  int _selectedIndex = 2;
   final GlobalKey<_HomePageContentState> _homePageKey = GlobalKey<_HomePageContentState>();
   late final List<Widget> _pages;
+  bool _hasPendingRequests = false;
 
   @override
   void initState() {
     super.initState();
     _pages = [
-      HomePageContent(key: _homePageKey),
       const BudgetPage(),
       const AnalyticsPage(),
+      HomePageContent(key: _homePageKey),
       const AIModelPage(),
-      const ConnectionsPage(),
+      const SocialPage(),
     ];
+    checkPendingRequests();
+  }
+
+  Future<void> checkPendingRequests() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // Check for pending friend requests
+      final friendRequests = await supabase
+          .from('friend_requests')
+          .select('id')
+          .eq('to_user_id', user.id)
+          .eq('status', 'pending');
+
+      // Check for pending split requests
+      final splitRequests = await supabase
+          .from('split_requests')
+          .select('id')
+          .eq('receiver_id', user.id)
+          .eq('status', 'pending');
+
+      if (mounted) {
+        setState(() {
+          _hasPendingRequests = friendRequests.isNotEmpty || splitRequests.isNotEmpty;
+        });
+      }
+    } catch (e) {
+      print('Error checking pending requests: $e');
+    }
   }
 
   void _onItemTapped(int index) {
@@ -105,12 +137,35 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Iconsax.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Iconsax.wallet), label: "Budget"),
-          BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: "Analysis"),
-          BottomNavigationBarItem(icon: Icon(Iconsax.gemini1), label: "AI"),
-          BottomNavigationBarItem(icon: Icon(Iconsax.people), label: "Connections"),
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Iconsax.wallet), label: "Budget"),
+          const BottomNavigationBarItem(icon: Icon(Iconsax.chart_2), label: "Analysis"),
+          const BottomNavigationBarItem(icon: Icon(Iconsax.home), label: "Home"),
+          const BottomNavigationBarItem(icon: Icon(Iconsax.gemini1), label: "AI"),
+          BottomNavigationBarItem(
+            icon: Stack(
+              children: [
+                const Icon(Iconsax.people),
+                if (_hasPendingRequests)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 8,
+                        minHeight: 8,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            label: "Social",
+          ),
         ],
       ),
     );
@@ -132,6 +187,7 @@ class _HomePageContentState extends State<HomePageContent> {
   double _totalIncome = 0.0;
   double _totalExpense = 0.0;
   DateTime _currentDate = DateTime.now();
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -140,10 +196,16 @@ class _HomePageContentState extends State<HomePageContent> {
   }
 
   Future<void> _fetchTransactions() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
       // First get all transactions that have split requests
       final splitRequestsResponse = await supabase
           .from('split_requests')
@@ -188,18 +250,26 @@ class _HomePageContentState extends State<HomePageContent> {
         }
       }
 
-      setState(() {
-        _transactions = transactionsWithSplitFlag;
-        _totalIncome = income;
-        _totalExpense = expense;
-        _balance = income - expense;
-        _filterTransactions();
-      });
+      if (mounted) {
+        setState(() {
+          _transactions = transactionsWithSplitFlag;
+          _totalIncome = income;
+          _totalExpense = expense;
+          _balance = income - expense;
+          _filterTransactions();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('Error fetching transactions: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading transactions: $e')),
-      );
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading transactions: $e')),
+        );
+      }
     }
   }
 
@@ -381,125 +451,140 @@ class _HomePageContentState extends State<HomePageContent> {
         ),
         _buildMonthNavigator(),
         Expanded(
-          child: _filteredTransactions.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.receipt_long,
-                        size: 64,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "No Transactions Found!",
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 18,
+          child: RefreshIndicator(
+            color: Colors.green,
+            backgroundColor: Colors.black,
+            onRefresh: _fetchTransactions,
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.green,
+                    ),
+                  )
+                : _filteredTransactions.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.receipt_long,
+                              size: 64,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              "No Transactions Found!",
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "for ${DateFormat('MMMM yyyy').format(_currentDate)}",
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "for ${DateFormat('MMMM yyyy').format(_currentDate)}",
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: _filteredTransactions.length,
-                  padding: const EdgeInsets.only(bottom: 80),
-                  itemBuilder: (context, index) {
-                    final tx = _filteredTransactions[index];
-                    bool isIncome = tx['type'] == 'income';
-                    String categoryOrNote = isIncome
-                        ? (tx['note'] ?? 'Other')
-                        : (tx['categories']?['name'] ?? 'Other');
-                    bool isAlreadySplit = _isTransactionSplit(tx);
+                      )
+                    : ListView.builder(
+                        itemCount: _filteredTransactions.length,
+                        padding: const EdgeInsets.only(bottom: 80),
+                        itemBuilder: (context, index) {
+                          final tx = _filteredTransactions[index];
+                          bool isIncome = tx['type'] == 'income';
+                          String categoryOrNote = isIncome
+                              ? (tx['note'] ?? 'Other')
+                              : (tx['categories']?['name'] ?? 'Other');
+                          bool isAlreadySplit = _isTransactionSplit(tx);
 
-                    return ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      title: Row(
-                        children: [
-                          Text(
-                            "${isIncome ? 'Income' : 'Expense'}: ",
-                            style: const TextStyle(color: Colors.white, fontSize: 16),
-                          ),
-                          Text(
-                            "₹${tx['amount']}",
-                            style: TextStyle(
-                              color: isIncome
-                                  ? const Color.fromARGB(255, 169, 206, 126)
-                                  : const Color.fromARGB(255, 216, 113, 112),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                          return ListTile(
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            title: Row(
+                              children: [
+                                Text(
+                                  "${isIncome ? 'Income' : 'Expense'}: ",
+                                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                                ),
+                                Text(
+                                  "₹${tx['amount']}",
+                                  style: TextStyle(
+                                    color: isIncome
+                                        ? const Color.fromARGB(255, 169, 206, 126)
+                                        : const Color.fromARGB(255, 216, 113, 112),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            categoryOrNote,
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 14,
-                              fontStyle: FontStyle.italic,
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  categoryOrNote,
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 14,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  DateFormat('d MMM').format(DateTime.parse(tx['created_at']).toLocal()),
+                                  style: TextStyle(
+                                      color: Colors.grey[600], fontSize: 12),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            DateFormat('d MMM').format(DateTime.parse(tx['created_at']).toLocal()),
-                            style: TextStyle(
-                                color: Colors.grey[600], fontSize: 12),
-                          ),
-                        ],
-                      ),
-                      trailing: !isIncome ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              Icons.group,
-                              color: isAlreadySplit ? Colors.grey : Colors.green,
+                            trailing: !isIncome ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.group,
+                                    color: isAlreadySplit ? Colors.grey : Colors.green,
+                                  ),
+                                  onPressed: isAlreadySplit
+                                      ? () => _showAlreadySplitMessage()
+                                      : () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => const SplitScreen(),
+                                              settings: RouteSettings(
+                                                arguments: {
+                                                  'transaction': tx,
+                                                  'amount': tx['amount'],
+                                                  'category': categoryOrNote,
+                                                  'date': tx['created_at'],
+                                                },
+                                              ),
+                                            ),
+                                          ).then((value) {
+                                            if (value == true) {
+                                              _fetchTransactions();
+                                            }
+                                          });
+                                        },
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red[300]),
+                                  onPressed: () => _confirmDelete(tx['id']),
+                                ),
+                              ],
+                            ) : IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red[300]),
+                              onPressed: () => _confirmDelete(tx['id']),
                             ),
-                            onPressed: isAlreadySplit
-                                ? () => _showAlreadySplitMessage()
-                                : () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const SplitScreen(),
-                                        settings: RouteSettings(
-                                          arguments: {
-                                            'transaction': tx,
-                                            'amount': tx['amount'],
-                                            'category': categoryOrNote,
-                                            'date': tx['created_at'],
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete, color: Colors.red[300]),
-                            onPressed: () => _confirmDelete(tx['id']),
-                          ),
-                        ],
-                      ) : IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red[300]),
-                        onPressed: () => _confirmDelete(tx['id']),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
+          ),
         ),
       ],
     );
