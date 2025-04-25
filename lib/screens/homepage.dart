@@ -131,7 +131,7 @@ class HomePageState extends State<HomePage> {
         child: const Icon(Icons.add, color: Colors.black),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color.fromARGB(255, 13, 13, 13),
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         currentIndex: _selectedIndex,

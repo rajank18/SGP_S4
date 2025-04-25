@@ -254,62 +254,69 @@ class _TransactionPageState extends State<TransactionPage> {
         iconTheme: const IconThemeData(color: Colors.green),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text("Enter Amount:",
-                style: TextStyle(fontSize: 18, color: Colors.white)),
+                style: TextStyle(fontSize: 16, color: Colors.white)),
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.none,
-              style: const TextStyle(fontSize: 20, color: Colors.white),
+              style: const TextStyle(fontSize: 18, color: Colors.white),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.grey[900],
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
-            const SizedBox(height: 18),
-            const Text("Select Type:",
-                style: TextStyle(fontSize: 18, color: Colors.white)),
-            DropdownButton<String>(
-              value: _selectedType,
-              dropdownColor: Colors.black,
-              items: ['income', 'expense']
-                  .map((type) => DropdownMenuItem(
-                        value: type,
-                        child: Text(type.toUpperCase(),
-                            style: const TextStyle(color: Colors.green)),
-                      ))
-                  .toList(),
-              onChanged: (val) {
-                setState(() {
-                  _selectedType = val!;
-                });
-              },
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text("Select Type:",
+                    style: TextStyle(fontSize: 16, color: Colors.white)),
+                const SizedBox(width: 16),
+                DropdownButton<String>(
+                  value: _selectedType,
+                  dropdownColor: Colors.black,
+                  items: ['income', 'expense']
+                      .map((type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(type.toUpperCase(),
+                                style: const TextStyle(color: Colors.green)),
+                          ))
+                      .toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedType = val!;
+                    });
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             if (_selectedType == 'expense') ...[
-              const Text("Select Category:",
-                  style: TextStyle(fontSize: 18, color: Colors.white)),
-              DropdownButton<String>(
-                value: _selectedCategory,
-                dropdownColor: Colors.black,
-                items: _categories
-                    .map((cat) => DropdownMenuItem(
-                          value: cat,
-                          child:
-                              Text(cat, style: const TextStyle(color: Colors.green)),
-                        ))
-                    .toList(),
-                onChanged: (val) =>
-                    setState(() => _selectedCategory = val!),
+              Row(
+                children: [
+                  const Text("Select Category:",
+                      style: TextStyle(fontSize: 16, color: Colors.white)),
+                  const SizedBox(width: 16),
+                  DropdownButton<String>(
+                    value: _selectedCategory,
+                    dropdownColor: Colors.black,
+                    items: _categories
+                        .map((cat) => DropdownMenuItem(
+                              value: cat,
+                              child: Text(cat, style: const TextStyle(color: Colors.green)),
+                            ))
+                        .toList(),
+                    onChanged: (val) => setState(() => _selectedCategory = val!),
+                  ),
+                ],
               ),
             ] else ...[
               const Text("Add Note (Optional):",
-                  style: TextStyle(fontSize: 18, color: Colors.white)),
+                  style: TextStyle(fontSize: 16, color: Colors.white)),
               TextField(
                 controller: _noteController,
                 style: const TextStyle(color: Colors.white),
@@ -318,13 +325,34 @@ class _TransactionPageState extends State<TransactionPage> {
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: Colors.grey[900],
-                  border:
-                      OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ],
-            const SizedBox(height: 20),
-            Expanded(child: _buildNumberPad()),
+            const SizedBox(height: 12),
+            Expanded(
+              child: GridView.count(
+                shrinkWrap: true,
+                crossAxisCount: 3,
+                mainAxisSpacing: 4,
+                crossAxisSpacing: 4,
+                childAspectRatio: 1.5,
+                children: [
+                  ...List.generate(9, (index) => _buildNumberButton("${index + 1}")),
+                  _buildNumberButton("."),
+                  _buildNumberButton("0"),
+                  _buildNumberButton("C", isClear: true),
+                  ElevatedButton(
+                    onPressed: _addTransaction,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    child: const Text("Enter", style: TextStyle(fontSize: 16, color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

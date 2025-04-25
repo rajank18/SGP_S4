@@ -229,6 +229,7 @@ class _BudgetPageState extends State<BudgetPage> {
                 )
               : ListView.builder(
                   itemCount: _categories.length,
+                  padding: const EdgeInsets.only(bottom: 80),
                   itemBuilder: (context, index) {
                     final budget = _categories[index]['budget'] as double;
                     final Color amountColor = budget == 0 
@@ -253,7 +254,7 @@ class _BudgetPageState extends State<BudgetPage> {
                           _categories[index]['name'],
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -261,7 +262,7 @@ class _BudgetPageState extends State<BudgetPage> {
                           "Budget: ₹${_categories[index]['budget']}",
                           style: TextStyle(
                             color: amountColor,
-                            fontSize: 20,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -276,6 +277,7 @@ class _BudgetPageState extends State<BudgetPage> {
                               "Set Budget",
                               style: TextStyle(
                                 color: Colors.green,
+                                fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

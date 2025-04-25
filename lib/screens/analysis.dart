@@ -106,9 +106,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           dataByCategory.clear();
           for (var transaction in response) {
             if (transaction['type'] == 'income') {
-              double amount = double.tryParse(transaction['amount'].toString()) ?? 0;
+              double amount =
+                  double.tryParse(transaction['amount'].toString()) ?? 0;
               String category = transaction['note'] ?? 'Other';
-              dataByCategory[category] = (dataByCategory[category] ?? 0) + amount;
+              dataByCategory[category] =
+                  (dataByCategory[category] ?? 0) + amount;
             }
           }
         } else if (_selectedType == 'income' && expenses > 0) {
@@ -117,12 +119,15 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           dataByCategory.clear();
           for (var transaction in response) {
             if (transaction['type'] == 'expense') {
-              double amount = double.tryParse(transaction['amount'].toString()) ?? 0;
+              double amount =
+                  double.tryParse(transaction['amount'].toString()) ?? 0;
               final categoryData = transaction['categories'];
-              String category = categoryData != null && categoryData['name'] != null
-                  ? categoryData['name']
-                  : 'Other';
-              dataByCategory[category] = (dataByCategory[category] ?? 0) + amount;
+              String category =
+                  categoryData != null && categoryData['name'] != null
+                      ? categoryData['name']
+                      : 'Other';
+              dataByCategory[category] =
+                  (dataByCategory[category] ?? 0) + amount;
             }
           }
         }
@@ -228,14 +233,16 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     ? Center(
                         child: Text(
                           'No transactions for ${_getDurationText().toLowerCase()}',
-                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 16),
                         ),
                       )
                     : categoryData.isEmpty
                         ? Center(
                             child: Text(
                               'No ${_selectedType}s for ${_getDurationText().toLowerCase()}',
-                              style: const TextStyle(color: Colors.white, fontSize: 16),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 16),
                             ),
                           )
                         : SingleChildScrollView(
@@ -256,190 +263,232 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                   Container(
                                     padding: const EdgeInsets.all(20),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.1),
+                                      color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Row(
                                       children: [
                                         Expanded(
-  child: ConstrainedBox(
-    constraints: const BoxConstraints(minHeight: 120),
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 66, 66, 66).withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            'Total Income',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          FittedBox(
-            child: Text(
-              '₹${totalIncome.toStringAsFixed(2)}',
-              style: const TextStyle(
-                color: Colors.green,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-),
-
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                                minHeight: 120),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(16),
+                                              decoration: BoxDecoration(
+                                                color: const Color.fromARGB(
+                                                        255, 66, 66, 66)
+                                                    .withOpacity(0.3),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  const Text(
+                                                    'Total Income',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  FittedBox(
+                                                    child: Text(
+                                                      '₹${totalIncome.toStringAsFixed(2)}',
+                                                      style: const TextStyle(
+                                                        color: Colors.green,
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                         const SizedBox(width: 16),
                                         Expanded(
-  child: ConstrainedBox(
-    constraints: const BoxConstraints(minHeight: 120),
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 66, 66, 66).withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            'Total Income',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          FittedBox(
-            child: Text(
-              '₹${totalExpenses.toStringAsFixed(2)}',
-              style: const TextStyle(
-                color: Colors.red,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-),
-
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                                minHeight: 120),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(16),
+                                              decoration: BoxDecoration(
+                                                color: const Color.fromARGB(
+                                                        255, 66, 66, 66)
+                                                    .withOpacity(0.3),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  const Text(
+                                                    'Total Income',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  FittedBox(
+                                                    child: Text(
+                                                      '₹${totalExpenses.toStringAsFixed(2)}',
+                                                      style: const TextStyle(
+                                                        color: Colors.red,
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                   const SizedBox(height: 30),
                                   LayoutBuilder(
-  builder: (context, constraints) {
-    final isSmall = constraints.maxWidth < 350;
-    return isSmall
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                'Expense Distribution',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButton<String>(
-                    value: _selectedType,
-                    dropdownColor: Colors.black,
-                    style: const TextStyle(color: Colors.green),
-                    underline: Container(),
-                    items: _types.map((String type) {
-                      return DropdownMenuItem<String>(
-                        value: type,
-                        child: Text(type == 'expense' ? 'Expenses' : 'Income'),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          _selectedType = newValue;
-                        });
-                        _fetchTransactionData();
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
-          )
-        : Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Expense Distribution',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: DropdownButton<String>(
-                  value: _selectedType,
-                  dropdownColor: Colors.black,
-                  style: const TextStyle(color: Colors.green),
-                  underline: Container(),
-                  items: _types.map((String type) {
-                    return DropdownMenuItem<String>(
-                      value: type,
-                      child: Text(type == 'expense' ? 'Expenses' : 'Income'),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _selectedType = newValue;
-                      });
-                      _fetchTransactionData();
-                    }
-                  },
-                ),
-              ),
-            ],
-          );
-  },
-),
-
-
+                                    builder: (context, constraints) {
+                                      final isSmall =
+                                          constraints.maxWidth < 350;
+                                      return isSmall
+                                          ? Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                const Text(
+                                                  'Expense Distribution',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Center(
+                                                  child: Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 12),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.green
+                                                          .withOpacity(0.1),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
+                                                    ),
+                                                    child:
+                                                        DropdownButton<String>(
+                                                      value: _selectedType,
+                                                      dropdownColor:
+                                                          Colors.black,
+                                                      style: const TextStyle(
+                                                          color: Colors.green),
+                                                      underline: Container(),
+                                                      items: _types
+                                                          .map((String type) {
+                                                        return DropdownMenuItem<
+                                                            String>(
+                                                          value: type,
+                                                          child: Text(
+                                                              type == 'expense'
+                                                                  ? 'Expenses'
+                                                                  : 'Income'),
+                                                        );
+                                                      }).toList(),
+                                                      onChanged:
+                                                          (String? newValue) {
+                                                        if (newValue != null) {
+                                                          setState(() {
+                                                            _selectedType =
+                                                                newValue;
+                                                          });
+                                                          _fetchTransactionData();
+                                                        }
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                          : Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                const Text(
+                                                  'Expense Distribution',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 12),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.green
+                                                        .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  child: DropdownButton<String>(
+                                                    value: _selectedType,
+                                                    dropdownColor: Colors.black,
+                                                    style: const TextStyle(
+                                                        color: Colors.green),
+                                                    underline: Container(),
+                                                    items: _types
+                                                        .map((String type) {
+                                                      return DropdownMenuItem<
+                                                          String>(
+                                                        value: type,
+                                                        child: Text(
+                                                            type == 'expense'
+                                                                ? 'Expenses'
+                                                                : 'Income'),
+                                                      );
+                                                    }).toList(),
+                                                    onChanged:
+                                                        (String? newValue) {
+                                                      if (newValue != null) {
+                                                        setState(() {
+                                                          _selectedType =
+                                                              newValue;
+                                                        });
+                                                        _fetchTransactionData();
+                                                      }
+                                                    },
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                    },
+                                  ),
                                   const SizedBox(height: 20),
                                   SizedBox(
                                     height: 300,
@@ -454,7 +503,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                   ),
                                   const SizedBox(height: 20),
                                   ...categoryData.entries.map((entry) {
-                                    final index = categoryData.keys.toList().indexOf(entry.key);
+                                    final index = categoryData.keys
+                                        .toList()
+                                        .indexOf(entry.key);
                                     final colors = [
                                       Colors.blue,
                                       Colors.red,
@@ -466,13 +517,15 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                       Colors.teal,
                                     ];
                                     return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 4.0),
                                       child: Row(
                                         children: [
                                           Container(
                                             width: 16,
                                             height: 16,
-                                            color: colors[index % colors.length],
+                                            color:
+                                                colors[index % colors.length],
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
