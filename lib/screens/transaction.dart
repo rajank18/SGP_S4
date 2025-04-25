@@ -81,6 +81,13 @@ class _TransactionPageState extends State<TransactionPage> {
     }
 
     final enteredAmount = double.tryParse(_amountController.text) ?? 0.0;
+
+    if (enteredAmount == 0.0) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("Amount cannot be zero. Please enter a valid value.")),
+  );
+  return;
+}
     final note = _selectedType == 'income' ? _noteController.text : null;
 
     String? categoryId;
