@@ -6,17 +6,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import './screens/signup.dart';
 import './screens/login.dart';
-
-
+import 'package:moneylog/config/env_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  
+  // Load environment variables
+  await EnvConfig.load();
+  
+  // Initialize Supabase with environment variables
   await Supabase.initialize(
-    url: '', 
-    anonKey: '', 
+    url: EnvConfig.supabaseUrl,
+    anonKey: EnvConfig.supabaseAnonKey,
   );
-
+  
   runApp(const MyApp());
 }
 
