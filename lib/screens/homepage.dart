@@ -24,6 +24,7 @@ class HomePageState extends State<HomePage> {
   final GlobalKey<_HomePageContentState> _homePageKey = GlobalKey<_HomePageContentState>();
   late final List<Widget> _pages;
   bool _hasPendingRequests = false;
+  String? _profileImageUrl; 
 
   @override
   void initState() {
@@ -35,7 +36,30 @@ class HomePageState extends State<HomePage> {
       const AIModelPage(),
       const SocialPage(),
     ];
+    fetchProfileImage();
     checkPendingRequests();
+  }
+
+  Future<void> fetchProfileImage() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final response = await supabase
+          .from('users')
+          .select('profile_image_url')
+          .eq('id', user.id)
+          .single(); // ✅ Fetch single user row
+
+      if (mounted) {
+        setState(() {
+          _profileImageUrl = response['profile_image_url'] as String?;
+        });
+      }
+    } catch (e) {
+      print('Error fetching profile image: $e');
+    }
   }
 
   Future<void> checkPendingRequests() async {
@@ -100,20 +124,26 @@ class HomePageState extends State<HomePage> {
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.green),
         actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.person,
-              size: 36,
-            ),
-            color: const Color.fromARGB(255, 255, 255, 255),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const UserProfile()),
-              );
-            },
+  IconButton(
+    icon: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+        ? CircleAvatar(
+            backgroundImage: NetworkImage(_profileImageUrl!),
+            radius: 18,
           )
-        ],
+        : const Icon(
+            Icons.person,
+            size: 36,
+            color: Colors.white,
+          ),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const UserProfile()),
+      );
+    },
+  ),
+],
+
       ),
       backgroundColor: Colors.black,
       body: _pages[_selectedIndex],

@@ -238,23 +238,15 @@ class _UserProfileState extends State<UserProfile> {
                                 : null,
                           ),
                           Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.green, width: 1.5),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.edit, size: 18, color: Colors.greenAccent),
-                                onPressed: _uploadProfileImage,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ),
-                          ),
+  bottom: 0,
+  right: 0,
+  child: IconButton(
+    icon: const Icon(Icons.edit, size: 16, color: Colors.greenAccent),
+    onPressed: _uploadProfileImage,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints(),
+  ),
+),
                         ],
                       ),
                     ),
