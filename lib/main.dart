@@ -5,14 +5,13 @@ import 'package:moneylog/screens/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import './screens/signup.dart';
-import './screens/login.dart';
 import 'package:moneylog/config/env_config.dart';
 import 'package:moneylog/services/notification_service.dart';
 import 'dart:async';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  print('App initialization started');
+
 
   // Load environment variables
   await EnvConfig.load();
@@ -28,7 +27,7 @@ void main() async {
   print('Notification service initialized');
 
   // Start notification timer
-  Timer.periodic(const Duration(minutes: 1), (timer) {
+  Timer.periodic(const Duration(minutes: 180), (timer) {
     NotificationService.showExpenseNotification();
   });
 

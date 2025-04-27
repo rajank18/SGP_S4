@@ -10,13 +10,33 @@ class SocialPage extends StatefulWidget {
   State<SocialPage> createState() => _SocialPageState();
 }
 
-class _SocialPageState extends State<SocialPage> {
+class _SocialPageState extends State<SocialPage> with SingleTickerProviderStateMixin {
   final supabase = Supabase.instance.client;
   final TextEditingController _searchController = TextEditingController();
+
+  late TabController _tabController;
 
   Map<String, dynamic>? searchResult;
   bool isSearching = false;
   final Set<String> _hiddenPaidRequests = {};  // Store IDs of hidden paid requests
+
+  // Add expansion state for each section
+  bool _splitReceivedExpanded = false;
+  bool _splitSentExpanded = false;
+  bool _pendingRequestsExpanded = false;
+  bool _connectionsExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   Future<void> _searchByEmail() async {
     final queryEmail = _searchController.text.trim();
@@ -240,459 +260,529 @@ void _toggleSection(String key) {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
         child: Column(
           children: [
-            TextField(
-              controller: _searchController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search by email...',
-                hintStyle: const TextStyle(color: Colors.white54),
-                filled: true,
-                fillColor: Colors.grey[900],
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search, color: Colors.green),
-                  onPressed: _searchByEmail,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onSubmitted: (_) => _searchByEmail(),
-            ),
-            const SizedBox(height: 20),
-            if (isSearching) const CircularProgressIndicator(),
-            if (searchResult != null) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[850],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    _buildAvatar(searchResult!['name'], searchResult!['profile_image_url']),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(searchResult!['name'],
-                              style: const TextStyle(
-                                  fontSize: 16, color: Colors.white)),
-                          Text(searchResult!['email'],
-                              style: const TextStyle(
-                                  fontSize: 14, color: Colors.white70)),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => _sendFriendRequest(searchResult!['id']),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green),
-                      child: const Text("Add"),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Split Requests",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search by email...',
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  filled: true,
+                  fillColor: Colors.grey[900],
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.search, color: Colors.green),
+                    onPressed: _searchByEmail,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                FutureBuilder<List<Map<String, dynamic>>>(
-                  future: _getSplitRequests(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    
-                    final paidRequests = snapshot.data!
-                        .where((req) => req['status'] == 'paid')
-                        .toList();
-
-                    if (paidRequests.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-
-                    return IconButton(
-                      icon: Icon(Icons.delete_sweep, color: Colors.red[300]),
-                      onPressed: () => _showDeleteConfirmation(paidRequests),
-                      tooltip: 'Hide paid split requests',
-                    );
-                  },
-                ),
-              ],
+                onSubmitted: (_) => _searchByEmail(),
+              ),
             ),
-            const SizedBox(height: 10),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: _getSplitRequests(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
-                } else if (snapshot.hasError) {
-                  return Text("Error: ${snapshot.error}",
-                      style: const TextStyle(color: Colors.red));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Text("No split requests",
-                      style: TextStyle(color: Colors.white70));
-                }
-
-                return Column(
-                  children: snapshot.data!.map((request) {
-                    final isPending = request['status'] == 'pending';
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[850],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isPending ? Colors.orange : Colors.green,
-                          width: 1,
-                        ),
-                      ),
-                      child: InkWell(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SplitDetails(splitRequest: request),
-                          ),
-                        ).then((value) {
-                          if (value == true) {
-                            setState(() {}); // Refresh the page
-                          }
-                        }),
+            if (isSearching) const CircularProgressIndicator(),
+            if (searchResult != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[850],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildAvatar(searchResult!['name'], searchResult!['profile_image_url']),
+                      const SizedBox(width: 16),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    _buildAvatar(
-                                      request['requester_name'],
-                                      request['requester_profile_image']
+                            Text(searchResult!['name'],
+                                style: const TextStyle(
+                                    fontSize: 16, color: Colors.white)),
+                            Text(searchResult!['email'],
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.white70)),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => _sendFriendRequest(searchResult!['id']),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green),
+                        child: const Text("Add"),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            // TabBar
+            Container(
+              color: Colors.black,
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.green,
+                labelColor: Colors.green,
+                unselectedLabelColor: Colors.white70,
+                tabs: const [
+                  Tab(text: 'Splits'),
+                  Tab(text: 'Connections'),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildMergedSplitRequestsTab(),
+                  _buildMergedConnectionsTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMergedSplitRequestsTab() {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Collapsible Split Requests (Received)
+          Column(
+            children: [
+              ListTile(
+                tileColor: Colors.transparent,
+                title: const Text(
+                  "Received",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                trailing: Icon(_splitReceivedExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.green),
+                onTap: () {
+                  setState(() {
+                    _splitReceivedExpanded = !_splitReceivedExpanded;
+                  });
+                },
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _splitReceivedExpanded
+                    ? FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _getSplitRequests(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator()));
+                          } else if (snapshot.hasError) {
+                            return Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red));
+                          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text("No split requests", style: TextStyle(color: Colors.white70))));
+                          }
+                          return Column(
+                            children: snapshot.data!.map((request) {
+                              final isPending = request['status'] == 'pending';
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isPending ? Colors.orange : Colors.green,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: InkWell(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SplitDetails(splitRequest: request),
                                     ),
-                                    const SizedBox(width: 12),
+                                  ).then((value) {
+                                    if (value == true) {
+                                      setState(() {}); // Refresh the page
+                                    }
+                                  }),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              _buildAvatar(
+                                                request['requester_name'],
+                                                request['requester_profile_image']
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                request['requester_name'],
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: isPending ? Colors.orange.withOpacity(0.2) : Colors.green.withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              request['status'].toUpperCase(),
+                                              style: TextStyle(
+                                                color: isPending ? Colors.orange : Colors.green,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        '₹${request['amount']}',
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (request['note'] != null) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          request['note'],
+                                          style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Collapsible Split Requests (Sent)
+          Column(
+            children: [
+              ListTile(
+                tileColor: Colors.transparent,
+                title: const Text(
+                  "Sent",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                trailing: Icon(_splitSentExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.green),
+                onTap: () {
+                  setState(() {
+                    _splitSentExpanded = !_splitSentExpanded;
+                  });
+                },
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _splitSentExpanded
+                    ? FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _getSentSplitRequests(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator()));
+                          } else if (snapshot.hasError) {
+                            return Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red));
+                          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text("No sent split requests", style: TextStyle(color: Colors.white70))));
+                          }
+                          return Column(
+                            children: snapshot.data!.map((request) {
+                              final isPending = request['status'] == 'pending';
+                              final isPaid = request['status'] == 'paid';
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isPending ? Colors.orange : isPaid ? Colors.grey : Colors.green,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            _buildAvatar(
+                                              request['receiver_name'],
+                                              request['receiver_profile_image'],
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              request['receiver_name'],
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isPending
+                                                ? Colors.orange.withOpacity(0.2)
+                                                : isPaid
+                                                    ? Colors.grey.withOpacity(0.2)
+                                                    : Colors.green.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            request['status'].toUpperCase(),
+                                            style: TextStyle(
+                                              color: isPending
+                                                  ? Colors.orange
+                                                  : isPaid
+                                                      ? Colors.grey
+                                                      : Colors.green,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
                                     Text(
-                                      request['requester_name'],
+                                      '₹${request['amount']}',
                                       style: const TextStyle(
-                                        color: Colors.white,
+                                        color: Colors.green,
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
+                                    if (request['note'] != null) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        request['note'],
+                                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                                      ),
+                                    ],
                                   ],
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isPending
-                                        ? Colors.orange.withOpacity(0.2)
-                                        : Colors.green.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    request['status'].toUpperCase(),
-                                    style: TextStyle(
-                                      color: isPending ? Colors.orange : Colors.green,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '₹${request['amount']}',
-                              style: const TextStyle(
-                                color: Colors.green,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (request['note'] != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                request['note'],
-                                style: TextStyle(color: Colors.grey[400]),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-            const SizedBox(height: 30),
-const Align(
-  alignment: Alignment.centerLeft,
-  child: Text(
-    "Split Requests Sent",
-    style: TextStyle(
-      color: Colors.white,
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-),
-const SizedBox(height: 10),
-FutureBuilder<List<Map<String, dynamic>>>(
-  future: _getSentSplitRequests(),
-  builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const CircularProgressIndicator();
-    } else if (snapshot.hasError) {
-      return Text("Error: ${snapshot.error}",
-          style: const TextStyle(color: Colors.red));
-    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-      return const Text("No sent split requests",
-          style: TextStyle(color: Colors.white70));
-    }
-
-    return Column(
-      children: snapshot.data!.map((request) {
-        final isPending = request['status'] == 'pending';
-        final isPaid = request['status'] == 'paid';
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[850],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isPending ? Colors.orange : isPaid ? Colors.grey : Colors.green,
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      _buildAvatar(
-                        request['receiver_name'],
-                        request['receiver_profile_image'],
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        request['receiver_name'],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isPending
-                          ? Colors.orange.withOpacity(0.2)
-                          : isPaid
-                              ? Colors.grey.withOpacity(0.2)
-                              : Colors.green.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      request['status'].toUpperCase(),
-                      style: TextStyle(
-                        color: isPending
-                            ? Colors.orange
-                            : isPaid
-                                ? Colors.grey
-                                : Colors.green,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+                              );
+                            }).toList(),
+                          );
+                        },
+                      )
+                    : const SizedBox.shrink(),
               ),
-              const SizedBox(height: 8),
-              Text(
-                '₹${request['amount']}',
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (request['note'] != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  request['note'],
-                  style: TextStyle(color: Colors.grey[400]),
-                ),
-              ],
             ],
           ),
-        );
-      }).toList(),
+        ],
+      ),
     );
-  },
-),
+  }
 
-            const SizedBox(height: 30),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Incoming Requests",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
+  Widget _buildMergedConnectionsTab() {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Collapsible Pending Friend Requests
+          Column(
+            children: [
+              ListTile(
+                tileColor: Colors.transparent,
+                title: const Text(
+                  "Pending Friend Requests",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                trailing: Icon(_pendingRequestsExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.green),
+                onTap: () {
+                  setState(() {
+                    _pendingRequestsExpanded = !_pendingRequestsExpanded;
+                  });
+                },
               ),
-            ),
-            const SizedBox(height: 10),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: _getIncomingRequests(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
-                } else if (snapshot.hasError) {
-                  return Text("Error: ${snapshot.error}",
-                      style: const TextStyle(color: Colors.red));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Text("No incoming requests",
-                      style: TextStyle(color: Colors.white70));
-                }
-
-                final requests = snapshot.data!;
-                return Column(
-                  children: requests.map((req) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[850],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          _buildAvatar(req['name'], req['profile_image_url']),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(req['name'],
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 16)),
-                                Text(req['email'],
-                                    style: const TextStyle(
-                                        color: Colors.white70, fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.check,
-                                    color: Colors.green),
-                                onPressed: () =>
-                                    _respondToRequest(req['id'], 'accepted'),
-                              ),
-                              IconButton(
-                                icon:
-                                    const Icon(Icons.close, color: Colors.red),
-                                onPressed: () =>
-                                    _respondToRequest(req['id'], 'rejected'),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-            const SizedBox(height: 30),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Your Connections",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _pendingRequestsExpanded
+                    ? FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _getIncomingRequests(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator()));
+                          } else if (snapshot.hasError) {
+                            return Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red));
+                          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text("No incoming requests", style: TextStyle(color: Colors.white70))));
+                          }
+                          final requests = snapshot.data!;
+                          return Column(
+                            children: requests.map((req) {
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.green.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    _buildAvatar(req['name'], req['profile_image_url']),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(req['name'],
+                                              style: const TextStyle(
+                                                  color: Colors.white, fontSize: 16)),
+                                          Text(req['email'],
+                                              style: const TextStyle(
+                                                  color: Colors.white70, fontSize: 14)),
+                                        ],
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.check, color: Colors.green),
+                                          onPressed: () => _respondToRequest(req['id'], 'accepted'),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.close, color: Colors.red),
+                                          onPressed: () => _respondToRequest(req['id'], 'rejected'),
+                                        ),
+                                      ],
+                                    )
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      )
+                    : const SizedBox.shrink(),
               ),
-            ),
-            const SizedBox(height: 10),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: _getAcceptedConnections(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
-                } else if (snapshot.hasError) {
-                  return Text("Error: ${snapshot.error}",
-                      style: const TextStyle(color: Colors.red));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Text("No connections yet",
-                      style: TextStyle(color: Colors.white70));
-                }
-
-                final friends = snapshot.data!;
-                return Column(
-                  children: friends.map((f) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 0, 0, 0),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          _buildAvatar(f['name'], f['profile_image_url']),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(f['name'],
-                                  style: const TextStyle(
-                                      color: Colors.white, fontSize: 16)),
-                              Text(f['email'],
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontSize: 14)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ],
-        ),
+            ],
+          ),
+          // Minimize gap between sections
+          const SizedBox(height: 4),
+          // Collapsible Your Connections
+          Column(
+            children: [
+              ListTile(
+                tileColor: Colors.transparent,
+                title: const Text(
+                  "Your Friends",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                trailing: Icon(_connectionsExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.green),
+                onTap: () {
+                  setState(() {
+                    _connectionsExpanded = !_connectionsExpanded;
+                  });
+                },
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _connectionsExpanded
+                    ? FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _getAcceptedConnections(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator()));
+                          } else if (snapshot.hasError) {
+                            return Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red));
+                          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text("No connections yet", style: TextStyle(color: Colors.white70))));
+                          }
+                          final friends = snapshot.data!;
+                          return Column(
+                            children: friends.map((f) {
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.green.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    _buildAvatar(f['name'], f['profile_image_url']),
+                                    const SizedBox(width: 16),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(f['name'],
+                                            style: const TextStyle(
+                                                color: Colors.white, fontSize: 16)),
+                                        Text(f['email'],
+                                            style: const TextStyle(
+                                                color: Colors.white70, fontSize: 14)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

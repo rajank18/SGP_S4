@@ -3,7 +3,6 @@ import 'package:moneylog/screens/homepage.dart';
 import 'package:moneylog/screens/signup.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:math';
-import './signup.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

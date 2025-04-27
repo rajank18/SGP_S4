@@ -11,7 +11,7 @@ class UserProfile extends StatefulWidget {
   _UserProfileState createState() => _UserProfileState();
 }
 
-class _UserProfileState extends State<UserProfile> {
+class _UserProfileState extends State<UserProfile> with SingleTickerProviderStateMixin {
   final supabase = Supabase.instance.client;
   String userName = "";
   String userEmail = "";
@@ -19,11 +19,30 @@ class _UserProfileState extends State<UserProfile> {
   String? profileImageUrl;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOut,
+      ),
+    );
+    _animationController.forward();
     _fetchUserData();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchUserData() async {
@@ -198,217 +217,298 @@ class _UserProfileState extends State<UserProfile> {
     TextEditingController _nameController = TextEditingController(text: userName);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.green),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('Profile', style: TextStyle(color: Colors.green)),
-      ),
       backgroundColor: Colors.black,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.green))
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Center(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.green, width: 2),
-                      ),
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 55,
-                            backgroundColor: Colors.black,
-                            backgroundImage: profileImageUrl != null
-                                ? NetworkImage(profileImageUrl!)
-                                : null,
-                            child: profileImageUrl == null
-                                ? Text(
-                                    userName.isNotEmpty ? userName[0].toUpperCase() : "?",
-                                    style: const TextStyle(fontSize: 36, color: Colors.white),
-                                  )
-                                : null,
-                          ),
-                          Positioned(
-  bottom: 0,
-  right: 0,
-  child: IconButton(
-    icon: const Icon(Icons.edit, size: 16, color: Colors.greenAccent),
-    onPressed: _uploadProfileImage,
-    padding: EdgeInsets.zero,
-    constraints: const BoxConstraints(),
-  ),
-),
-                        ],
-                      ),
-                    ),
+          : CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 0,
+                  backgroundColor: Colors.black,
+                  pinned: true,
+                  elevation: 0,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.green),
+                    onPressed: () => Navigator.pop(context),
                   ),
-
-                  const SizedBox(height: 16),
-
-                  Stack(
-                    children: [
-                      Center(
-                        child: Text(
-                          userName,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                  title: const Text('Profile', style: TextStyle(color: Colors.green)),
+                ),
+                SliverToBoxAdapter(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Column(
+                      children: [
+                        // Profile Section
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.green.withOpacity(0.1),
+                                Colors.black,
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        child: IconButton(
-                          icon: const Icon(Icons.edit, size: 20, color: Colors.greenAccent),
-                          onPressed: () async {
-                            final newName = await showDialog<String>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text("Edit Name"),
-                                content: TextField(
-                                  controller: _nameController,
-                                  decoration: const InputDecoration(labelText: "Name"),
+                          child: Column(
+                            children: [
+                              // Profile Image
+                              GestureDetector(
+                                onTap: _uploadProfileImage,
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.green,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 50,
+                                        backgroundColor: Colors.black,
+                                        backgroundImage: profileImageUrl != null
+                                            ? NetworkImage(profileImageUrl!)
+                                            : null,
+                                        child: profileImageUrl == null
+                                            ? Text(
+                                                userName.isNotEmpty ? userName[0].toUpperCase() : "?",
+                                                style: const TextStyle(fontSize: 32, color: Colors.white),
+                                              )
+                                            : null,
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.edit, size: 18, color: Colors.green),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text("Cancel"),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.pop(context, _nameController.text),
-                                    child: const Text("Update"),
-                                  ),
-                                ],
                               ),
-                            );
-                            if (newName != null && newName.trim().isNotEmpty) {
-                              final user = supabase.auth.currentUser;
-                              if (user != null) {
-                                await supabase.from('users').update({'name': newName}).eq('id', user.id);
-                                setState(() {
-                                  userName = newName;
-                                });
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Name updated successfully')),
-                                );
-                              }
-                            }
-                          },
+                              const SizedBox(height: 15),
+                              // Name and Email
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 40),
+                                child: Column(
+                                  children: [
+                                    Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Center(
+                                          child: Text(
+                                            userName,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          right: 0,
+                                          child: GestureDetector(
+                                            onTap: () async {
+                                              final newName = await showDialog<String>(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  backgroundColor: Colors.grey[900],
+                                                  title: const Text("Edit Name", style: TextStyle(color: Colors.white)),
+                                                  content: TextField(
+                                                    controller: _nameController,
+                                                    style: const TextStyle(color: Colors.white),
+                                                    decoration: InputDecoration(
+                                                      labelText: "Name",
+                                                      labelStyle: const TextStyle(color: Colors.grey),
+                                                      enabledBorder: const UnderlineInputBorder(
+                                                        borderSide: BorderSide(color: Colors.grey),
+                                                      ),
+                                                      focusedBorder: const UnderlineInputBorder(
+                                                        borderSide: BorderSide(color: Colors.green),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () => Navigator.pop(context),
+                                                      child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                                                    ),
+                                                    ElevatedButton(
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: Colors.green,
+                                                      ),
+                                                      onPressed: () => Navigator.pop(context, _nameController.text),
+                                                      child: const Text("Update"),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                              if (newName != null && newName.trim().isNotEmpty) {
+                                                final user = supabase.auth.currentUser;
+                                                if (user != null) {
+                                                  await supabase.from('users').update({'name': newName}).eq('id', user.id);
+                                                  setState(() {
+                                                    userName = newName;
+                                                  });
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('Name updated successfully')),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                            child: const Icon(Icons.edit, size: 18, color: Colors.green),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      userEmail,
+                                      style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 4),
-                  Text(
-                    userEmail,
-                    style: const TextStyle(fontSize: 14, color: Colors.white70),
-                  ),
-
-                  const SizedBox(height: 24),
-                  const Divider(color: Colors.grey),
-
-                  const SizedBox(height: 24),
-                  const Text(
-                    "Total Budget",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "₹ ${totalBudget.toStringAsFixed(2)}",
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
-                  ),
-
-                  const SizedBox(height: 24),
-                  const Divider(color: Colors.grey),
-
-                  const SizedBox(height: 12),
-                  // Contact Us with background
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: GestureDetector(
-                      onTap: () async {
-  final Uri emailLaunchUri = Uri(
-    scheme: 'mailto',
-    path: 'kingrkr999@gmail.com',
-    query: Uri.encodeFull('subject=App Support&body=Hello, I need help with...'),
-  );
-
-  if (await canLaunchUrl(emailLaunchUri)) {
-    await launchUrl(emailLaunchUri, mode: LaunchMode.platformDefault);
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Could not open email app")),
-    );
-  }
-},
-
-                      child: const Text(
-                        "Contact Us",
-                        style: TextStyle(
-                          color: Colors.greenAccent,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
+                        // Budget Section
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                              color: Colors.grey[800]!,
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                "Total Budget",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "₹ ${totalBudget.toStringAsFixed(2)}",
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
+                        // Action Buttons
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                          child: Column(
+                            children: [
+                              // Contact Support
+                              SizedBox(
+                                width: 150,
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    final Uri emailLaunchUri = Uri(
+                                      scheme: 'mailto',
+                                      path: 'kingrkr999@gmail.com',
+                                      query: Uri.encodeFull('subject=App Support&body=Hello, I need help with...'),
+                                    );
+
+                                    if (await canLaunchUrl(emailLaunchUri)) {
+                                      await launchUrl(emailLaunchUri, mode: LaunchMode.platformDefault);
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Could not open email app")),
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.email, color: Colors.white, size: 18),
+                                  label: const Text(
+                                    "Contact Us",
+                                    style: TextStyle(color: Colors.white, fontSize: 14),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color.fromARGB(255, 146, 146, 228),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12,),
+                              // Sign Out Button
+                              SizedBox(
+                                width: 200,
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    await supabase.auth.signOut();
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Sign Out",
+                                    style: TextStyle(color: Colors.white, fontSize: 14),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Delete Account Button
+                              SizedBox(
+                                width: 200,
+                                child: ElevatedButton(
+                                  onPressed: _deleteAccount,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Delete Account",
+                                    style: TextStyle(color: Colors.white, fontSize: 14),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
                   ),
-
-                  const SizedBox(height: 12),
-
-                  const SizedBox(height: 24),
-
-                  // Delete Account button
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    ),
-                    onPressed: _deleteAccount,
-                    child: const Text(
-                      "Delete Account",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.greenAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    ),
-                    onPressed: () async {
-                      await supabase.auth.signOut();
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginPage()),
-                      );
-                    },
-                    child: const Text(
-                      "Sign Out",
-                      style: TextStyle(color: Colors.black, fontSize: 16),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
     );
   }
