@@ -338,7 +338,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                                     MainAxisAlignment.center,
                                                 children: [
                                                   const Text(
-                                                    'Total Income',
+                                                    'Total Expense',
                                                     style: TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 16,

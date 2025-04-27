@@ -343,19 +343,21 @@ class _UserProfileState extends State<UserProfile> {
                     ),
                     child: GestureDetector(
                       onTap: () async {
-                        final Uri emailLaunchUri = Uri(
-                          scheme: 'mailto',
-                          path: 'kingrkr999@gmail.com',
-                          query: Uri.encodeFull('subject=App Support&body=Hello, I need help with...'),
-                        );
-                        if (await canLaunchUrl(emailLaunchUri)) {
-                          await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Could not open email app")),
-                          );
-                        }
-                      },
+  final Uri emailLaunchUri = Uri(
+    scheme: 'mailto',
+    path: 'kingrkr999@gmail.com',
+    query: Uri.encodeFull('subject=App Support&body=Hello, I need help with...'),
+  );
+
+  if (await canLaunchUrl(emailLaunchUri)) {
+    await launchUrl(emailLaunchUri, mode: LaunchMode.platformDefault);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Could not open email app")),
+    );
+  }
+},
+
                       child: const Text(
                         "Contact Us",
                         style: TextStyle(
