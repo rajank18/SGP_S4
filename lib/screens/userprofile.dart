@@ -238,23 +238,15 @@ class _UserProfileState extends State<UserProfile> {
                                 : null,
                           ),
                           Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.green, width: 1.5),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.edit, size: 18, color: Colors.greenAccent),
-                                onPressed: _uploadProfileImage,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ),
-                          ),
+  bottom: 0,
+  right: 0,
+  child: IconButton(
+    icon: const Icon(Icons.edit, size: 16, color: Colors.greenAccent),
+    onPressed: _uploadProfileImage,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints(),
+  ),
+),
                         ],
                       ),
                     ),
@@ -351,19 +343,21 @@ class _UserProfileState extends State<UserProfile> {
                     ),
                     child: GestureDetector(
                       onTap: () async {
-                        final Uri emailLaunchUri = Uri(
-                          scheme: 'mailto',
-                          path: 'kingrkr999@gmail.com',
-                          query: Uri.encodeFull('subject=App Support&body=Hello, I need help with...'),
-                        );
-                        if (await canLaunchUrl(emailLaunchUri)) {
-                          await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Could not open email app")),
-                          );
-                        }
-                      },
+  final Uri emailLaunchUri = Uri(
+    scheme: 'mailto',
+    path: 'kingrkr999@gmail.com',
+    query: Uri.encodeFull('subject=App Support&body=Hello, I need help with...'),
+  );
+
+  if (await canLaunchUrl(emailLaunchUri)) {
+    await launchUrl(emailLaunchUri, mode: LaunchMode.platformDefault);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Could not open email app")),
+    );
+  }
+},
+
                       child: const Text(
                         "Contact Us",
                         style: TextStyle(

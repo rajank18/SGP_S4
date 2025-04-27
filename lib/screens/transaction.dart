@@ -296,24 +296,27 @@ class _TransactionPageState extends State<TransactionPage> {
             ),
             const SizedBox(height: 12),
             if (_selectedType == 'expense') ...[
-              Row(
-                children: [
-                  const Text("Select Category:",
-                      style: TextStyle(fontSize: 16, color: Colors.white)),
-                  const SizedBox(width: 16),
-                  DropdownButton<String>(
-                    value: _selectedCategory,
-                    dropdownColor: Colors.black,
-                    items: _categories
-                        .map((cat) => DropdownMenuItem(
-                              value: cat,
-                              child: Text(cat, style: const TextStyle(color: Colors.green)),
-                            ))
-                        .toList(),
-                    onChanged: (val) => setState(() => _selectedCategory = val!),
-                  ),
-                ],
-              ),
+              Wrap(
+  crossAxisAlignment: WrapCrossAlignment.center,
+  spacing: 16,
+  runSpacing: 8,
+  children: [
+    const Text("Select Category:",
+        style: TextStyle(fontSize: 16, color: Colors.white)),
+    DropdownButton<String>(
+      value: _selectedCategory,
+      dropdownColor: Colors.black,
+      items: _categories
+          .map((cat) => DropdownMenuItem(
+                value: cat,
+                child: Text(cat, style: const TextStyle(color: Colors.green)),
+              ))
+          .toList(),
+      onChanged: (val) => setState(() => _selectedCategory = val!),
+    ),
+  ],
+),
+
             ] else ...[
               const Text("Add Note (Optional):",
                   style: TextStyle(fontSize: 16, color: Colors.white)),

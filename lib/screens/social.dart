@@ -62,6 +62,53 @@ class _SocialPageState extends State<SocialPage> {
     }
   }
 
+  Future<List<Map<String, dynamic>>> _getSentSplitRequests() async {
+  final user = supabase.auth.currentUser;
+  if (user == null) return [];
+
+  final requests = await supabase
+      .from('split_requests')
+      .select('''
+        id,
+        amount,
+        status,
+        note,
+        category_name,
+        receiver_id,
+        receiver:users!split_requests_receiver_id_fkey(
+          name,
+          profile_image_url
+        )
+      ''')
+      .eq('requester_id', user.id)
+      .order('created_at', ascending: false);
+
+  return requests.map<Map<String, dynamic>>((req) {
+    return {
+      'id': req['id'],
+      'amount': req['amount'],
+      'status': req['status'],
+      'note': req['note'],
+      'category_name': req['category_name'],
+      'receiver_id': req['receiver_id'],
+      'receiver_name': req['receiver']['name'],
+      'receiver_profile_image': req['receiver']['profile_image_url'],
+    };
+  }).toList();
+}
+  Map<String, bool> _sectionExpanded = {
+  'split_received': true,
+  'split_sent': true,
+  'incoming_requests': true,
+  'connections': true,
+};
+
+void _toggleSection(String key) {
+  setState(() {
+    _sectionExpanded[key] = !_sectionExpanded[key]!;
+  });
+}
+
   Future<void> _sendFriendRequest(String toUserId) async {
     final fromUserId = supabase.auth.currentUser?.id;
     if (fromUserId == null) return;
@@ -396,6 +443,122 @@ class _SocialPageState extends State<SocialPage> {
                 );
               },
             ),
+            const SizedBox(height: 30),
+const Align(
+  alignment: Alignment.centerLeft,
+  child: Text(
+    "Split Requests Sent",
+    style: TextStyle(
+      color: Colors.white,
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+),
+const SizedBox(height: 10),
+FutureBuilder<List<Map<String, dynamic>>>(
+  future: _getSentSplitRequests(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const CircularProgressIndicator();
+    } else if (snapshot.hasError) {
+      return Text("Error: ${snapshot.error}",
+          style: const TextStyle(color: Colors.red));
+    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+      return const Text("No sent split requests",
+          style: TextStyle(color: Colors.white70));
+    }
+
+    return Column(
+      children: snapshot.data!.map((request) {
+        final isPending = request['status'] == 'pending';
+        final isPaid = request['status'] == 'paid';
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[850],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isPending ? Colors.orange : isPaid ? Colors.grey : Colors.green,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      _buildAvatar(
+                        request['receiver_name'],
+                        request['receiver_profile_image'],
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        request['receiver_name'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isPending
+                          ? Colors.orange.withOpacity(0.2)
+                          : isPaid
+                              ? Colors.grey.withOpacity(0.2)
+                              : Colors.green.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      request['status'].toUpperCase(),
+                      style: TextStyle(
+                        color: isPending
+                            ? Colors.orange
+                            : isPaid
+                                ? Colors.grey
+                                : Colors.green,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '₹${request['amount']}',
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (request['note'] != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  request['note'],
+                  style: TextStyle(color: Colors.grey[400]),
+                ),
+              ],
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  },
+),
+
             const SizedBox(height: 30),
             const Align(
               alignment: Alignment.centerLeft,
