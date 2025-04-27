@@ -8,22 +8,11 @@ import './screens/signup.dart';
 import './screens/login.dart';
 import 'package:moneylog/config/env_config.dart';
 import 'package:moneylog/services/notification_service.dart';
-import 'package:workmanager/workmanager.dart';
-// Import dart:async for Timer if needed, but Workmanager is preferred for background tasks
-// import 'dart:async';
-
-// Callback dispatcher for Workmanager
-@pragma('vm:entry-point') // Mandatory for Workmanager
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) {
-    // Show the expense reminder notification
-    NotificationService.showExpenseNotification();
-    return Future.value(true);
-  });
-}
+import 'dart:async';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  print('App initialization started');
 
   // Load environment variables
   await EnvConfig.load();
@@ -36,24 +25,12 @@ void main() async {
 
   // Initialize the notification service
   await NotificationService.init();
+  print('Notification service initialized');
 
-  // Initialize Workmanager
-  Workmanager().initialize(
-    callbackDispatcher,
-    isInDebugMode: true, // Set to false for production
-  );
-
-  // Register periodic task for expense reminder
-  // Frequency set to 2 minutes (120 seconds)
-  Workmanager().registerPeriodicTask(
-    "expenseReminderTask", // Unique task name
-    "expenseReminder", // Task identifier
-    frequency: Duration(seconds: 1), // Set to 2 minutes
-    // Constraints can be added here if needed (e.g., networkType: NetworkType.connected)
-  );
-
-  // Removed NotificationScheduler as Workmanager handles background tasks
-  // NotificationScheduler.start(); // Start notification scheduler
+  // Start notification timer
+  Timer.periodic(const Duration(minutes: 1), (timer) {
+    NotificationService.showExpenseNotification();
+  });
 
   runApp(const MyApp());
 }
@@ -120,21 +97,3 @@ class AuthRedirectScreen extends StatelessWidget {
     );
   }
 }
-
-// Removed NotificationScheduler as Workmanager is used for periodic tasks
-/*
-class NotificationScheduler {
-  static Timer? _timer;
-
-  static void start() {
-    // Timer set to 2 minutes (120 seconds)
-    _timer = Timer.periodic(Duration(seconds: 120), (timer) {
-      NotificationService.showExpenseNotification(); // Trigger expense notification
-    });
-  }
-
-  static void stop() {
-    _timer?.cancel();
-  }
-}
-*/
