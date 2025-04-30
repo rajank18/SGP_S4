@@ -188,7 +188,7 @@ class _TransactionPageState extends State<TransactionPage> {
         final newBudget = currentBudget - amount;
 
         if (newBudget >= 0) {
-          await supabase522
+          await supabase
               .from('budgets')
               .update({'amount': newBudget}).eq('id', response['id']);
         } else {
