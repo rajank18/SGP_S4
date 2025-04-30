@@ -83,11 +83,13 @@ class _TransactionPageState extends State<TransactionPage> {
     final enteredAmount = double.tryParse(_amountController.text) ?? 0.0;
 
     if (enteredAmount == 0.0) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text("Amount cannot be zero. Please enter a valid value.")),
-  );
-  return;
-}
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text("Amount cannot be zero. Please enter a valid value.")),
+      );
+      return;
+    }
     final note = _selectedType == 'income' ? _noteController.text : null;
 
     String? categoryId;
@@ -182,10 +184,24 @@ class _TransactionPageState extends State<TransactionPage> {
           .maybeSingle();
 
       if (response != null) {
-        final newAmount = (response['amount'] as num).toDouble() - amount;
-        await supabase
-            .from('budgets')
-            .update({'amount': newAmount}).eq('id', response['id']);
+        final currentBudget = (response['amount'] as num).toDouble();
+        final newBudget = currentBudget - amount;
+
+        if (newBudget >= 0) {
+          await supabase522
+              .from('budgets')
+              .update({'amount': newBudget}).eq('id', response['id']);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Expense exceeds the remaining budget for this category.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          // Optionally, you might want to prevent the transaction from being added
+          // or ask the user for confirmation here. For now, we just show a warning.
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -212,7 +228,8 @@ class _TransactionPageState extends State<TransactionPage> {
             backgroundColor: Colors.green,
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
-          child: const Text("Enter", style: TextStyle(fontSize: 16, color: Colors.white)),
+          child: const Text("Enter",
+              style: TextStyle(fontSize: 16, color: Colors.white)),
         ),
       ],
     );
@@ -249,7 +266,8 @@ class _TransactionPageState extends State<TransactionPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("Add Transaction", style: TextStyle(color: Colors.green)),
+        title: const Text("Add Transaction",
+            style: TextStyle(color: Colors.green)),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.green),
       ),
@@ -267,7 +285,8 @@ class _TransactionPageState extends State<TransactionPage> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.grey[900],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
             const SizedBox(height: 12),
@@ -297,26 +316,27 @@ class _TransactionPageState extends State<TransactionPage> {
             const SizedBox(height: 12),
             if (_selectedType == 'expense') ...[
               Wrap(
-  crossAxisAlignment: WrapCrossAlignment.center,
-  spacing: 16,
-  runSpacing: 8,
-  children: [
-    const Text("Select Category:",
-        style: TextStyle(fontSize: 16, color: Colors.white)),
-    DropdownButton<String>(
-      value: _selectedCategory,
-      dropdownColor: Colors.black,
-      items: _categories
-          .map((cat) => DropdownMenuItem(
-                value: cat,
-                child: Text(cat, style: const TextStyle(color: Colors.green)),
-              ))
-          .toList(),
-      onChanged: (val) => setState(() => _selectedCategory = val!),
-    ),
-  ],
-),
-
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 16,
+                runSpacing: 8,
+                children: [
+                  const Text("Select Category:",
+                      style: TextStyle(fontSize: 16, color: Colors.white)),
+                  DropdownButton<String>(
+                    value: _selectedCategory,
+                    dropdownColor: Colors.black,
+                    items: _categories
+                        .map((cat) => DropdownMenuItem(
+                              value: cat,
+                              child: Text(cat,
+                                  style: const TextStyle(color: Colors.green)),
+                            ))
+                        .toList(),
+                    onChanged: (val) =>
+                        setState(() => _selectedCategory = val!),
+                  ),
+                ],
+              ),
             ] else ...[
               const Text("Add Note (Optional):",
                   style: TextStyle(fontSize: 16, color: Colors.white)),
@@ -328,7 +348,8 @@ class _TransactionPageState extends State<TransactionPage> {
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: Colors.grey[900],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ],
@@ -341,7 +362,8 @@ class _TransactionPageState extends State<TransactionPage> {
                 crossAxisSpacing: 4,
                 childAspectRatio: 1.5,
                 children: [
-                  ...List.generate(9, (index) => _buildNumberButton("${index + 1}")),
+                  ...List.generate(
+                      9, (index) => _buildNumberButton("${index + 1}")),
                   _buildNumberButton("."),
                   _buildNumberButton("0"),
                   _buildNumberButton("C", isClear: true),
@@ -351,7 +373,8 @@ class _TransactionPageState extends State<TransactionPage> {
                       backgroundColor: Colors.green,
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
-                    child: const Text("Enter", style: TextStyle(fontSize: 16, color: Colors.white)),
+                    child: const Text("Enter",
+                        style: TextStyle(fontSize: 16, color: Colors.white)),
                   ),
                 ],
               ),
